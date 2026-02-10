@@ -18,17 +18,18 @@ import Profile from "./pages/Profile";
 
 function App() {
   return (
-    <AuthProvider>
-      <AppProvider>
-        <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppProvider>
+
           <Routes>
 
-            {/* Public Routes */}
+            {/* Public */}
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
-            {/* Protected Routes */}
+            {/* Protected */}
             <Route element={<Layout />}>
               <Route
                 path="/dashboard"
@@ -38,7 +39,6 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-
               <Route
                 path="/plans"
                 element={
@@ -47,7 +47,6 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-
               <Route
                 path="/deposit"
                 element={
@@ -56,7 +55,6 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-
               <Route
                 path="/withdraw"
                 element={
@@ -65,7 +63,6 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-
               <Route
                 path="/history"
                 element={
@@ -74,7 +71,6 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-
               <Route
                 path="/referrals"
                 element={
@@ -83,7 +79,6 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-
               <Route
                 path="/profile"
                 element={
@@ -92,7 +87,6 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-
               <Route
                 path="/admin"
                 element={
@@ -103,38 +97,15 @@ function App() {
               />
             </Route>
 
-            {/* Catch All */}
             <Route path="*" element={<Navigate to="/" replace />} />
 
           </Routes>
 
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: "#363636",
-                color: "#fff",
-              },
-              success: {
-                duration: 3000,
-                iconTheme: {
-                  primary: "#22c55e",
-                  secondary: "#fff",
-                },
-              },
-              error: {
-                duration: 4000,
-                iconTheme: {
-                  primary: "#ef4444",
-                  secondary: "#fff",
-                },
-              },
-            }}
-          />
-        </BrowserRouter>
-      </AppProvider>
-    </AuthProvider>
+          <Toaster position="top-right" />
+
+        </AppProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 
