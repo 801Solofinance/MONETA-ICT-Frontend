@@ -1,137 +1,197 @@
-import { createContext, useContext, useState, useEffect } from 'react'
-import toast from 'react-hot-toast'
-import { generateReferralCode } from '../utils/validators'
-import { LIMITS, USER_ROLES } from '../utils/constants'
+import { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const AuthContext = createContext(null)
+const AuthContext = createContext();
 
-export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
-  }
-  return context
-}
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-  // Initialize auth from localStorage
+  // Load user from localStorage on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('moneta_user')
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser))
-      } catch (error) {
-        console.error('Error parsing stored user:', error)
-        localStorage.removeItem('moneta_user')
+    const loadUser = async () => {
+      const token = localStorage.getItem('token');
+      const savedUser = localStorage.getItem('user');
+
+      if (token && savedUser) {
+        try {
+          const userData = JSON.parse(savedUser);
+          setUser(userData);
+          
+          // Refresh user data from server
+          await refreshUser();
+        } catch (error) {
+          console.error('Error loading user:', error);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
       }
+      setLoading(false);
+    };
+
+    loadUser();
+  }, []);
+
+  // Refresh user data from server
+  const refreshUser = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${API_URL}/api/user/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Token expired or invalid
+          logout();
+          return;
+        }
+        throw new Error('Failed to fetch user');
+      }
+
+      const data = await response.json();
+      const updatedUser = data.user;
+      
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Error refreshing user:', error);
     }
-    setLoading(false)
-  }, [])
+  };
+
+  // Generate referral code
+  const generateReferralCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  };
 
   // Register new user
   const register = async (userData) => {
     try {
-      // Get existing users
-      const existingUsers = JSON.parse(localStorage.getItem('moneta_users') || '[]')
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...userData,
+          referralCode: generateReferralCode()
+        })
+      });
 
-      // Check if email already exists
-      if (existingUsers.some(u => u.email === userData.email)) {
-        throw new Error('El correo electrónico ya está registrado')
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
       }
 
-      // Generate unique user ID and referral code
-      const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      const referralCode = generateReferralCode()
+      // Save token and user
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setUser(data.user);
 
-      // Create new user
-      const newUser = {
-        id: userId,
-        name: userData.name,
-        email: userData.email,
-        phone: userData.phone,
-        country: userData.country,
-        referralCode: referralCode,
-        referredBy: userData.referredBy || null,
-        role: USER_ROLES.USER,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        // Balance is 0 - welcome bonus is NOT auto-credited
-        balance: 0,
-      }
-
-      // Save to users list
-      existingUsers.push(newUser)
-      localStorage.setItem('moneta_users', JSON.stringify(existingUsers))
-
-      // Auto-login
-      const userWithoutPassword = { ...newUser }
-      setUser(userWithoutPassword)
-      localStorage.setItem('moneta_user', JSON.stringify(userWithoutPassword))
-
-      // Show welcome bonus message (but don't credit it)
-      const welcomeBonus = LIMITS[userData.country].WELCOME_BONUS
-      const currency = userData.country === 'CO' ? 'COP' : 'PEN'
-      const symbol = userData.country === 'CO' ? '$' : 'S/'
+      // Check if first deposit bonus should be applied
+      // (This will be handled by backend when first deposit is approved)
       
-      toast.success(`¡Bienvenido! Recibirás ${symbol}${welcomeBonus.toLocaleString()} ${currency} al aprobar tu primer depósito`, {
-        duration: 5000,
-      })
-
-      return userWithoutPassword
+      return { success: true, user: data.user };
     } catch (error) {
-      toast.error(error.message || 'Error al registrar usuario')
-      throw error
+      console.error('Registration error:', error);
+      return { success: false, error: error.message };
     }
-  }
+  };
 
   // Login user
   const login = async (email, password) => {
     try {
-      const existingUsers = JSON.parse(localStorage.getItem('moneta_users') || '[]')
-      const foundUser = existingUsers.find(u => u.email === email)
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
 
-      if (!foundUser) {
-        throw new Error('Credenciales inválidas')
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
       }
 
-      // In production, verify password hash
-      // For demo, we'll accept any password for simplicity
+      // Save token and user
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setUser(data.user);
 
-      setUser(foundUser)
-      localStorage.setItem('moneta_user', JSON.stringify(foundUser))
-
-      toast.success(`¡Bienvenido, ${foundUser.name}!`)
-      return foundUser
+      return { success: true, user: data.user };
     } catch (error) {
-      toast.error(error.message || 'Error al iniciar sesión')
-      throw error
+      console.error('Login error:', error);
+      return { success: false, error: error.message };
     }
-  }
+  };
 
   // Logout user
   const logout = () => {
-    setUser(null)
-    localStorage.removeItem('moneta_user')
-    toast.success('Sesión cerrada correctamente')
-  }
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    navigate('/login');
+  };
 
-  // Update user data
-  const updateUser = (updates) => {
-    const updatedUser = { ...user, ...updates }
-    setUser(updatedUser)
-    localStorage.setItem('moneta_user', JSON.stringify(updatedUser))
+  // Update user profile
+  const updateProfile = async (updates) => {
+    const token = localStorage.getItem('token');
+    if (!token) return { success: false, error: 'Not authenticated' };
 
-    // Also update in users list
-    const existingUsers = JSON.parse(localStorage.getItem('moneta_users') || '[]')
-    const userIndex = existingUsers.findIndex(u => u.id === user.id)
-    if (userIndex !== -1) {
-      existingUsers[userIndex] = updatedUser
-      localStorage.setItem('moneta_users', JSON.stringify(existingUsers))
+    try {
+      const response = await fetch(`${API_URL}/api/user/profile`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(updates)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Update failed');
+      }
+
+      const updatedUser = data.user;
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+
+      return { success: true, user: updatedUser };
+    } catch (error) {
+      console.error('Update profile error:', error);
+      return { success: false, error: error.message };
     }
-  }
+  };
+
+  // Update balance locally (for optimistic UI updates)
+  const updateBalance = (amount) => {
+    if (!user) return;
+    
+    const updatedUser = {
+      ...user,
+      balance: (parseFloat(user.balance) + parseFloat(amount)).toFixed(2)
+    };
+    
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
 
   const value = {
     user,
@@ -139,10 +199,22 @@ export const AuthProvider = ({ children }) => {
     register,
     login,
     logout,
-    updateUser,
-    isAuthenticated: !!user,
-    isAdmin: user?.role === USER_ROLES.ADMIN,
-  }
+    updateProfile,
+    refreshUser,
+    updateBalance
+  };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
 }
