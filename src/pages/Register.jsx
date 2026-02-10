@@ -1,291 +1,285 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import {
-  User,
-  Mail,
-  Phone,
-  Globe,
-  Lock,
-  Eye,
-  EyeOff,
-  UserPlus,
-  Gift,
-} from "lucide-react";
-import LoadingSpinner from "../components/shared/LoadingSpinner";
-import {
-  isValidEmail,
-  isValidPhone,
-  isValidFullName,
-  formatPhoneNumber,
-} from "../utils/validators";
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { register, user } = useAuth();
-
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    country: "CO",
-    password: "",
-    confirmPassword: "",
-    referredBy: searchParams.get("ref") || "",
-    acceptTerms: false,
+    name: '',
+    email: '',
+    phone: '',
+    country: 'CO',
+    password: '',
+    confirmPassword: '',
+    referredBy: '',
+    agreeTerms: false
   });
-
-  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      navigate("/dashboard", { replace: true });
+  const handlePhoneChange = (value) => {
+    // Format phone number based on country
+    let formatted = value.replace(/\D/g, '');
+    
+    if (formData.country === 'CO') {
+      // Colombia: +57 XXX XXX XXXX
+      if (formatted.length <= 10) {
+        formatted = formatted.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
+      }
+    } else {
+      // Peru: +51 XXX XXX XXX
+      if (formatted.length <= 9) {
+        formatted = formatted.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
+      }
     }
-  }, [user, navigate]);
-
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    let newValue = type === "checkbox" ? checked : value;
-
-    if (name === "phone") {
-      newValue = formatPhoneNumber(value, formData.country);
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
-
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
-  };
-
-  const validate = () => {
-    const newErrors = {};
-
-    if (!isValidFullName(formData.name)) {
-      newErrors.name = "Ingresa tu nombre completo";
-    }
-
-    if (!isValidEmail(formData.email)) {
-      newErrors.email = "Correo inválido";
-    }
-
-    if (!isValidPhone(formData.phone, formData.country)) {
-      newErrors.phone = "Número inválido";
-    }
-
-    if (formData.password.length < 8) {
-      newErrors.password = "Mínimo 8 caracteres";
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Las contraseñas no coinciden";
-    }
-
-    if (!formData.acceptTerms) {
-      newErrors.acceptTerms = "Debes aceptar los términos";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    
+    setFormData({ ...formData, phone: formatted.trim() });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    setError('');
+
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (!formData.agreeTerms) {
+      setError('You must agree to the terms and conditions');
+      return;
+    }
 
     setLoading(true);
 
     try {
-      const payload = {
-        ...formData,
-        currency: formData.country === "CO" ? "COP" : "PEN",
-      };
+      console.log('Attempting registration for:', formData.email);
+      
+      const result = await register({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone.replace(/\s/g, ''), // Remove spaces
+        country: formData.country,
+        password: formData.password,
+        referredBy: formData.referredBy || null
+      });
 
-      const result = await register(payload);
-
-      if (!result.success) {
-        setErrors({ submit: result.error });
-        return;
+      if (result.success) {
+        console.log('Registration successful, redirecting to dashboard');
+        navigate('/dashboard');
+      } else {
+        console.error('Registration failed:', result.error);
+        setError(result.error || 'Registration failed. Please try again.');
       }
-
-      navigate("/dashboard", { replace: true });
-    } catch (error) {
-      setErrors({ submit: "Error al registrarse" });
+    } catch (err) {
+      console.error('Registration error:', err);
+      setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const getWelcomeBonus = () =>
-    formData.country === "CO"
-      ? "COP 12,000"
-      : "S/ 10 PEN";
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 py-12 px-4">
-      <div className="max-w-xl mx-auto">
-
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center px-4 py-12">
+      <div className="max-w-md w-full">
+        {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary-600 mb-2">
-            MONETA-ICT
-          </h1>
-          <h2 className="text-2xl font-semibold">
-            Crear Cuenta
-          </h2>
-        </div>
-
-        {/* Dynamic Bonus */}
-        <div className="bg-green-500 rounded-lg p-4 mb-6 text-white">
-          <div className="flex items-center">
-            <Gift className="w-5 h-5 mr-2" />
-            <span>Bono de Bienvenida: {getWelcomeBonus()}</span>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-xl mb-4">
+            <span className="text-white font-bold text-2xl">M</span>
           </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
+          <p className="text-gray-600">Start your investment journey with MONETA-ICT</p>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow">
+        {/* Registration Form */}
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800 text-sm">{error}</p>
+            </div>
+          )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-
-            {/* Name */}
-            <div className="relative">
-              <User className="absolute left-3 top-3 text-gray-400" />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Full Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Full Name
+              </label>
               <input
-                name="name"
+                type="text"
                 value={formData.name}
-                onChange={handleChange}
-                className="input pl-10"
-                placeholder="Nombre Completo"
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="John Doe"
+                required
               />
             </div>
 
             {/* Email */}
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 text-gray-400" />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
               <input
-                name="email"
+                type="email"
                 value={formData.email}
-                onChange={handleChange}
-                className="input pl-10"
-                placeholder="Correo"
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="you@example.com"
+                required
               />
             </div>
 
             {/* Country */}
-            <div className="relative">
-              <Globe className="absolute left-3 top-3 text-gray-400" />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Country
+              </label>
               <select
-                name="country"
                 value={formData.country}
-                onChange={handleChange}
-                className="input pl-10"
+                onChange={(e) => setFormData({ ...formData, country: e.target.value, phone: '' })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="CO">🇨🇴 Colombia</option>
-                <option value="PE">🇵🇪 Perú</option>
+                <option value="PE">🇵🇪 Peru</option>
               </select>
             </div>
 
             {/* Phone */}
-            <div className="relative">
-              <Phone className="absolute left-3 top-3 text-gray-400" />
-              <input
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="input pl-10"
-                placeholder={
-                  formData.country === "CO"
-                    ? "+57 3001234567"
-                    : "+51 912345678"
-                }
-              />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number
+              </label>
+              <div className="flex">
+                <span className="inline-flex items-center px-4 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg text-gray-700">
+                  {formData.country === 'CO' ? '+57' : '+51'}
+                </span>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder={formData.country === 'CO' ? '300 123 4567' : '987 654 321'}
+                  required
+                />
+              </div>
             </div>
 
             {/* Password */}
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 text-gray-400" />
-              <input
-                name="password"
-                type={showPassword ? "text" : "password"}
-                value={formData.password}
-                onChange={handleChange}
-                className="input pl-10 pr-10"
-                placeholder="Contraseña"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Minimum 6 characters"
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                >
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
             </div>
 
             {/* Confirm Password */}
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 text-gray-400" />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm Password
+              </label>
               <input
-                name="confirmPassword"
-                type={showConfirmPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
                 value={formData.confirmPassword}
-                onChange={handleChange}
-                className="input pl-10 pr-10"
-                placeholder="Confirmar Contraseña"
+                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Re-enter password"
+                required
               />
-              <button
-                type="button"
-                onClick={() =>
-                  setShowConfirmPassword(!showConfirmPassword)
-                }
-                className="absolute right-3 top-3"
-              >
-                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
             </div>
 
-            {/* Terms */}
-            <div className="flex items-center">
+            {/* Referral Code (Optional) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Referral Code (Optional)
+              </label>
+              <input
+                type="text"
+                value={formData.referredBy}
+                onChange={(e) => setFormData({ ...formData, referredBy: e.target.value.toUpperCase() })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter referral code"
+                maxLength={6}
+              />
+            </div>
+
+            {/* Terms Agreement */}
+            <div className="flex items-start">
               <input
                 type="checkbox"
-                name="acceptTerms"
-                checked={formData.acceptTerms}
-                onChange={handleChange}
-                className="mr-2"
+                checked={formData.agreeTerms}
+                onChange={(e) => setFormData({ ...formData, agreeTerms: e.target.checked })}
+                className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                required
               />
-              Aceptar Términos
+              <label className="ml-2 text-sm text-gray-600">
+                I agree to the{' '}
+                <a href="#" className="text-blue-600 hover:text-blue-700">
+                  Terms and Conditions
+                </a>{' '}
+                and{' '}
+                <a href="#" className="text-blue-600 hover:text-blue-700">
+                  Privacy Policy
+                </a>
+              </label>
             </div>
 
-            {errors.submit && (
-              <div className="text-red-600 text-sm">
-                {errors.submit}
-              </div>
-            )}
-
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn btn-primary"
+              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
             >
-              {loading ? <LoadingSpinner size="sm" /> : "Crear Cuenta"}
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Creating account...
+                </span>
+              ) : (
+                'Create Account'
+              )}
             </button>
-
           </form>
 
-          <div className="text-center mt-4">
-            ¿Ya tienes cuenta?{" "}
-            <Link to="/login" className="text-primary-600">
-              Inicia sesión
-            </Link>
+          {/* Sign In Link */}
+          <div className="mt-6 text-center">
+            <p className="text-gray-600">
+              Already have an account?{' '}
+              <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+                Sign in
+              </Link>
+            </p>
           </div>
-
         </div>
       </div>
     </div>
   );
-        }
+}

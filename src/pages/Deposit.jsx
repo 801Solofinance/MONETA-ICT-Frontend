@@ -1,230 +1,283 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
-import { useApp } from "../context/AppContext";
-import { useNavigate } from "react-router-dom";
-import { formatCurrency } from "../utils/currency";
+import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useApp } from '../context/AppContext';
+import { formatCurrency } from '../utils/currency';
 
 export default function Deposit() {
   const { user, refreshUser } = useAuth();
   const { addNotification } = useApp();
-  const navigate = useNavigate();
-
-  const currency = user?.country === "CO" ? "COP" : "PEN";
-  const minAmount = currency === "COP" ? 40000 : 20;
-
-  const [step, setStep] = useState(1);
-  const [amount, setAmount] = useState("");
-  const [proofFile, setProofFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [countdown, setCountdown] = useState(900);
-  const [initialBalance, setInitialBalance] = useState(0);
+  const [formData, setFormData] = useState({
+    amount: '',
+    currency: user?.country === 'CO' ? 'COP' : 'PEN',
+    proofFile: null
+  });
+  const [previewUrl, setPreviewUrl] = useState(null);
 
-  const quickAmounts =
-    currency === "COP"
-      ? [40000, 80000, 150000, 300000]
-      : [20, 50, 100, 200];
-
-  // Countdown Timer
-  useEffect(() => {
-    if (step === 3 && countdown > 0) {
-      const timer = setInterval(() => {
-        setCountdown((prev) => prev - 1);
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [step, countdown]);
-
-  const formatTime = (sec) => {
-    const minutes = Math.floor(sec / 60);
-    const seconds = sec % 60;
-    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+  // Bank details based on currency
+  const bankDetails = formData.currency === 'COP' ? {
+    account: '00100007120',
+    bank: 'Bancolombia',
+    type: 'Ahorros',
+    name: 'Jimenez Jose'
+  } : {
+    account: '935460768',
+    bank: 'PLIN',
+    type: '',
+    name: 'ELISIA RIOS'
   };
 
-  const handleUpload = (e) => {
+  const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        addNotification('File size must be less than 5MB', 'error');
+        return;
+      }
+      
+      if (!file.type.startsWith('image/')) {
+        addNotification('Please upload an image file', 'error');
+        return;
+      }
 
-    if (!file.type.startsWith("image/")) {
-      return addNotification("Only image files allowed", "error");
+      setFormData({ ...formData, proofFile: file });
+      
+      const reader = new FileReader();
+      reader.onloadend = () => setPreviewUrl(reader.result);
+      reader.readAsDataURL(file);
     }
-
-    setProofFile(file);
-
-    const reader = new FileReader();
-    reader.onloadend = () => setPreviewUrl(reader.result);
-    reader.readAsDataURL(file);
   };
 
-  const submitDeposit = async () => {
-    if (!amount || amount < minAmount) {
-      return addNotification("Invalid deposit amount", "error");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.amount || formData.amount <= 0) {
+      addNotification('Please enter a valid amount', 'error');
+      return;
     }
 
-    if (!proofFile) {
-      return addNotification("Upload payment proof", "error");
+    if (!formData.proofFile) {
+      addNotification('Please upload proof of payment', 'error');
+      return;
     }
 
     setLoading(true);
 
     try {
-      const token = localStorage.getItem("token");
-      setInitialBalance(user?.balance || 0);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        addNotification('Please login first', 'error');
+        return;
+      }
+      
+      const uploadData = new FormData();
+      uploadData.append('amount', formData.amount);
+      uploadData.append('currency', formData.currency);
+      uploadData.append('proof', formData.proofFile);
 
-      const formData = new FormData();
-      formData.append("amount", amount);
-      formData.append("currency", currency);
-      formData.append("proof", proofFile);
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${API_URL}/api/transactions/deposit`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: uploadData
+      });
 
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/transactions/deposit`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        }
-      );
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to create deposit');
+      }
 
-      if (!res.ok) throw new Error("Deposit failed");
+      addNotification('✅ Deposit request submitted! Awaiting admin approval.', 'success');
+      
+      setFormData({
+        amount: '',
+        currency: user?.country === 'CO' ? 'COP' : 'PEN',
+        proofFile: null
+      });
+      setPreviewUrl(null);
+      
+      await refreshUser();
 
-      setStep(4);
-
-      // Poll every 5 sec for approval
-      const interval = setInterval(async () => {
-        const updatedUser = await refreshUser();
-
-        if (updatedUser?.balance > initialBalance) {
-          clearInterval(interval);
-          setStep(5);
-          setTimeout(() => navigate("/dashboard"), 2000);
-        }
-      }, 5000);
-
-    } catch (err) {
-      addNotification(err.message, "error");
+    } catch (error) {
+      console.error('Deposit error:', error);
+      addNotification(error.message || 'Failed to submit deposit', 'error');
     } finally {
       setLoading(false);
     }
   };
 
+  const minAmount = formData.currency === 'COP' ? 50000 : 20;
+  const maxAmount = formData.currency === 'COP' ? 10000000 : 3000;
+
   return (
-    <div className="max-w-xl mx-auto p-6 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Make a Deposit</h1>
+        <p className="text-gray-600">Add funds to start investing</p>
+      </div>
 
-      {/* STEP 1 */}
-      {step === 1 && (
-        <>
-          <h2 className="text-2xl font-bold">Select Deposit Amount</h2>
+      <div className="grid md:grid-cols-2 gap-8">
+        {/* Form */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-semibold mb-4">Deposit Information</h2>
 
-          <div className="grid grid-cols-2 gap-4">
-            {quickAmounts.map((amt) => (
-              <button
-                key={amt}
-                onClick={() => setAmount(amt)}
-                className="btn btn-secondary"
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
+              <select
+                value={formData.currency}
+                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
-                {formatCurrency(amt, currency)}
-              </button>
-            ))}
-          </div>
+                <option value="COP">COP - Colombian Peso</option>
+                <option value="PEN">PEN - Peruvian Sol</option>
+              </select>
+            </div>
 
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="input"
-            placeholder={`Min ${formatCurrency(minAmount, currency)}`}
-          />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
+              <input
+                type="number"
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                placeholder={`Min: ${formatCurrency(minAmount, formData.currency)}`}
+                min={minAmount}
+                max={maxAmount}
+                step={formData.currency === 'COP' ? 1000 : 1}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                required
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Min: {formatCurrency(minAmount, formData.currency)} | Max: {formatCurrency(maxAmount, formData.currency)}
+              </p>
+            </div>
 
-          {amount >= minAmount && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Proof of Payment</label>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-400 transition">
+                <div className="space-y-1 text-center">
+                  {previewUrl ? (
+                    <div className="mb-4">
+                      <img src={previewUrl} alt="Preview" className="mx-auto h-32 w-auto rounded" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({ ...formData, proofFile: null });
+                          setPreviewUrl(null);
+                        }}
+                        className="mt-2 text-sm text-red-600 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                  <div className="flex text-sm text-gray-600">
+                    <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+                      <span>Upload file</span>
+                      <input type="file" accept="image/*" onChange={handleFileChange} className="sr-only" />
+                    </label>
+                    <p className="pl-1">or drag and drop</p>
+                  </div>
+                  <p className="text-xs text-gray-500">PNG, JPG up to 5MB</p>
+                </div>
+              </div>
+            </div>
+
             <button
-              onClick={() => setStep(2)}
-              className="btn btn-primary w-full"
-            >
-              Confirm Deposit
-            </button>
-          )}
-        </>
-      )}
-
-      {/* STEP 2 */}
-      {step === 2 && (
-        <>
-          <h2 className="text-xl font-bold">Confirm Deposit</h2>
-          <div className="bg-gray-100 p-4 rounded">
-            {formatCurrency(amount, currency)}
-          </div>
-          <button
-            onClick={() => setStep(3)}
-            className="btn btn-primary w-full"
-          >
-            Proceed to Payment
-          </button>
-        </>
-      )}
-
-      {/* STEP 3 */}
-      {step === 3 && (
-        <>
-          <h2 className="text-xl font-bold">Complete Payment</h2>
-
-          <div className="bg-blue-50 p-4 rounded">
-            {currency === "COP" ? (
-              <>
-                <p><strong>Bank:</strong> Bancolombia</p>
-                <p><strong>Type:</strong> Ahorros</p>
-                <p><strong>Account:</strong> 00100007120</p>
-                <p><strong>Name:</strong> Jose Jimenez C.</p>
-              </>
-            ) : (
-              <>
-                <p><strong>Method:</strong> PLIN</p>
-                <p><strong>Phone:</strong> 935460768</p>
-                <p><strong>Name:</strong> ELISIA RIOS</p>
-              </>
-            )}
-          </div>
-
-          <p className="text-sm text-gray-600">
-            Complete payment within:{" "}
-            <strong>{formatTime(countdown)}</strong>
-          </p>
-
-          <input type="file" accept="image/*" onChange={handleUpload} />
-
-          {previewUrl && (
-            <img src={previewUrl} alt="preview" className="h-32 mt-2 rounded" />
-          )}
-
-          {proofFile && (
-            <button
-              onClick={submitDeposit}
+              type="submit"
               disabled={loading}
-              className="btn btn-primary w-full"
+              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 transition"
             >
-              {loading ? "Submitting..." : "I Have Completed Payment"}
+              {loading ? 'Processing...' : 'Submit Deposit Request'}
             </button>
-          )}
-        </>
-      )}
-
-      {/* STEP 4 */}
-      {step === 4 && (
-        <div className="text-center space-y-3">
-          <h2 className="text-xl font-bold">Payment Under Review</h2>
-          <p>Payment is being reviewed.</p>
-          <p>Estimated time: 15 minutes.</p>
+          </form>
         </div>
-      )}
 
-      {/* STEP 5 */}
-      {step === 5 && (
-        <div className="text-center space-y-3">
-          <h2 className="text-green-600 text-2xl font-bold">
-            Deposit Successful 🎉
-          </h2>
-          <p>Redirecting to dashboard...</p>
+        {/* Bank Details & Info */}
+        <div className="space-y-6">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md p-6 text-white">
+            <h3 className="text-sm font-medium mb-2 opacity-90">Current Balance</h3>
+            <p className="text-3xl font-bold">{formatCurrency(user?.balance || 0, formData.currency)}</p>
+          </div>
+
+          {/* Bank Account Details */}
+          <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-6">
+            <h3 className="text-lg font-semibold mb-4 text-yellow-900">
+              💳 {formData.currency === 'COP' ? 'Bancolombia Account' : 'PLIN Account'}
+            </h3>
+            <div className="space-y-3 text-sm">
+              <div className="bg-white rounded-lg p-3">
+                <span className="font-medium text-gray-700">Account:</span>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-lg font-bold text-gray-900">{bankDetails.account}</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(bankDetails.account);
+                      addNotification('Account copied!', 'success');
+                    }}
+                    className="text-blue-600 hover:text-blue-700 text-xs"
+                  >
+                    📋 Copy
+                  </button>
+                </div>
+              </div>
+              <div>
+                <span className="font-medium text-yellow-900">Bank:</span>
+                <span className="ml-2 text-yellow-800">{bankDetails.bank}</span>
+              </div>
+              {bankDetails.type && (
+                <div>
+                  <span className="font-medium text-yellow-900">Type:</span>
+                  <span className="ml-2 text-yellow-800">{bankDetails.type}</span>
+                </div>
+              )}
+              <div>
+                <span className="font-medium text-yellow-900">Name:</span>
+                <span className="ml-2 text-yellow-800">{bankDetails.name}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Instructions */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold mb-4">How to Deposit</h3>
+            <ol className="space-y-3 text-sm text-gray-600">
+              <li className="flex items-start">
+                <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium mr-3">1</span>
+                <span>Transfer to the {bankDetails.bank} account above</span>
+              </li>
+              <li className="flex items-start">
+                <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium mr-3">2</span>
+                <span>Take screenshot of confirmation</span>
+              </li>
+              <li className="flex items-start">
+                <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium mr-3">3</span>
+                <span>Upload proof using form</span>
+              </li>
+              <li className="flex items-start">
+                <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium mr-3">4</span>
+                <span>Admin approves within 24 hours</span>
+              </li>
+              <li className="flex items-start">
+                <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium mr-3">5</span>
+                <span>Balance updates automatically</span>
+              </li>
+            </ol>
+          </div>
+
+          {/* Welcome Bonus */}
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold mb-2 text-green-900">🎁 Welcome Bonus!</h3>
+            <p className="text-sm text-green-800">First deposit gets <strong>5% bonus</strong>!</p>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
