@@ -42,7 +42,9 @@ export default function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-    if (user) navigate("/dashboard", { replace: true });
+    if (user) {
+      navigate("/dashboard", { replace: true });
+    }
   }, [user, navigate]);
 
   const handleChange = (e) => {
@@ -53,38 +55,46 @@ export default function Register() {
       newValue = formatPhoneNumber(value, formData.country);
     }
 
-    setFormData((prev) => ({ ...prev, [name]: newValue }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: newValue,
+    }));
+
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
   };
 
   const validate = () => {
     const newErrors = {};
 
-    if (!isValidFullName(formData.name))
-      newErrors.name = "Full name required";
+    if (!isValidFullName(formData.name)) {
+      newErrors.name = "Ingresa tu nombre completo";
+    }
 
-    if (!isValidEmail(formData.email))
-      newErrors.email = "Valid email required";
+    if (!isValidEmail(formData.email)) {
+      newErrors.email = "Correo inválido";
+    }
 
-    if (!isValidPhone(formData.phone, formData.country))
-      newErrors.phone = "Valid phone required";
+    if (!isValidPhone(formData.phone, formData.country)) {
+      newErrors.phone = "Número inválido";
+    }
 
-    if (formData.password.length < 8)
-      newErrors.password = "Minimum 8 characters";
+    if (formData.password.length < 8) {
+      newErrors.password = "Mínimo 8 caracteres";
+    }
 
-    if (formData.password !== formData.confirmPassword)
-      newErrors.confirmPassword = "Passwords do not match";
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Las contraseñas no coinciden";
+    }
 
-    if (!formData.acceptTerms)
-      newErrors.acceptTerms = "You must accept terms";
+    if (!formData.acceptTerms) {
+      newErrors.acceptTerms = "Debes aceptar los términos";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
-  const getWelcomeBonus = () =>
-    formData.country === "CO"
-      ? "COP 12,000"
-      : "S/ 10";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,109 +108,184 @@ export default function Register() {
         currency: formData.country === "CO" ? "COP" : "PEN",
       };
 
-      await register(payload);
+      const result = await register(payload);
+
+      if (!result.success) {
+        setErrors({ submit: result.error });
+        return;
+      }
+
       navigate("/dashboard", { replace: true });
     } catch (error) {
-      setErrors({ submit: error.message });
+      setErrors({ submit: "Error al registrarse" });
     } finally {
       setLoading(false);
     }
   };
 
+  const getWelcomeBonus = () =>
+    formData.country === "CO"
+      ? "COP 12,000"
+      : "S/ 10 PEN";
+
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4">
-      <div className="max-w-xl mx-auto bg-white p-8 rounded-xl shadow-lg">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 py-12 px-4">
+      <div className="max-w-xl mx-auto">
 
-        <h1 className="text-3xl font-bold text-center text-primary-600 mb-2">
-          MONETA-ICT
-        </h1>
-
-        <div className="bg-green-500 text-white p-4 rounded-lg mb-6 flex items-center">
-          <Gift className="mr-3" />
-          <span>Welcome Bonus: {getWelcomeBonus()}</span>
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-primary-600 mb-2">
+            MONETA-ICT
+          </h1>
+          <h2 className="text-2xl font-semibold">
+            Crear Cuenta
+          </h2>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Dynamic Bonus */}
+        <div className="bg-green-500 rounded-lg p-4 mb-6 text-white">
+          <div className="flex items-center">
+            <Gift className="w-5 h-5 mr-2" />
+            <span>Bono de Bienvenida: {getWelcomeBonus()}</span>
+          </div>
+        </div>
 
-          <input
-            name="name"
-            placeholder="Full Name"
-            className="input"
-            value={formData.name}
-            onChange={handleChange}
-          />
+        <div className="bg-white p-6 rounded-xl shadow">
 
-          <input
-            name="email"
-            placeholder="Email"
-            className="input"
-            value={formData.email}
-            onChange={handleChange}
-          />
+          <form onSubmit={handleSubmit} className="space-y-4">
 
-          <select
-            name="country"
-            className="input"
-            value={formData.country}
-            onChange={handleChange}
-          >
-            <option value="CO">🇨🇴 Colombia</option>
-            <option value="PE">🇵🇪 Peru</option>
-          </select>
+            {/* Name */}
+            <div className="relative">
+              <User className="absolute left-3 top-3 text-gray-400" />
+              <input
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="input pl-10"
+                placeholder="Nombre Completo"
+              />
+            </div>
 
-          <input
-            name="phone"
-            placeholder="Phone Number"
-            className="input"
-            value={formData.phone}
-            onChange={handleChange}
-          />
+            {/* Email */}
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 text-gray-400" />
+              <input
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="input pl-10"
+                placeholder="Correo"
+              />
+            </div>
 
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            className="input"
-            value={formData.password}
-            onChange={handleChange}
-          />
+            {/* Country */}
+            <div className="relative">
+              <Globe className="absolute left-3 top-3 text-gray-400" />
+              <select
+                name="country"
+                value={formData.country}
+                onChange={handleChange}
+                className="input pl-10"
+              >
+                <option value="CO">🇨🇴 Colombia</option>
+                <option value="PE">🇵🇪 Perú</option>
+              </select>
+            </div>
 
-          <input
-            type="password"
-            name="confirmPassword"
-            placeholder="Confirm Password"
-            className="input"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-          />
+            {/* Phone */}
+            <div className="relative">
+              <Phone className="absolute left-3 top-3 text-gray-400" />
+              <input
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                className="input pl-10"
+                placeholder={
+                  formData.country === "CO"
+                    ? "+57 3001234567"
+                    : "+51 912345678"
+                }
+              />
+            </div>
 
-          <label className="flex items-center text-sm">
-            <input
-              type="checkbox"
-              name="acceptTerms"
-              checked={formData.acceptTerms}
-              onChange={handleChange}
-              className="mr-2"
-            />
-            Accept Terms & Conditions
-          </label>
+            {/* Password */}
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 text-gray-400" />
+              <input
+                name="password"
+                type={showPassword ? "text" : "password"}
+                value={formData.password}
+                onChange={handleChange}
+                className="input pl-10 pr-10"
+                placeholder="Contraseña"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn btn-primary w-full"
-          >
-            {loading ? <LoadingSpinner size="sm" /> : "Create Account"}
-          </button>
-        </form>
+            {/* Confirm Password */}
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 text-gray-400" />
+              <input
+                name="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="input pl-10 pr-10"
+                placeholder="Confirmar Contraseña"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  setShowConfirmPassword(!showConfirmPassword)
+                }
+                className="absolute right-3 top-3"
+              >
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
 
-        <div className="text-center mt-4 text-sm">
-          Already have account?{" "}
-          <Link to="/login" className="text-primary-600">
-            Login
-          </Link>
+            {/* Terms */}
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                name="acceptTerms"
+                checked={formData.acceptTerms}
+                onChange={handleChange}
+                className="mr-2"
+              />
+              Aceptar Términos
+            </div>
+
+            {errors.submit && (
+              <div className="text-red-600 text-sm">
+                {errors.submit}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full btn btn-primary"
+            >
+              {loading ? <LoadingSpinner size="sm" /> : "Crear Cuenta"}
+            </button>
+
+          </form>
+
+          <div className="text-center mt-4">
+            ¿Ya tienes cuenta?{" "}
+            <Link to="/login" className="text-primary-600">
+              Inicia sesión
+            </Link>
+          </div>
+
         </div>
       </div>
     </div>
   );
-                      }
+        }
