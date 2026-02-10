@@ -1,266 +1,323 @@
+/**
+ * Planes de inversión disponibles
+ * Cada plan tiene montos específicos para Colombia (COP) y Perú (PEN)
+ */
+
 export const INVESTMENT_PLANS = [
   {
     id: 'starter',
-    name: 'Plan Starter',
+    name: 'Starter',
+    description: 'Plan inicial perfecto para comenzar tu camino en las inversiones',
     icon: '🌱',
-    featured: false,
-    minInvestment: { CO: 50000, PE: 130 },
-    dailyReturn: { CO: 8600, PE: 22 },
     duration: 30,
-    totalReturn: { CO: 258000, PE: 660 },
-    roi: { CO: 17.2, PE: 17.2 },
-    description: 'Ideal para comenzar tu camino en las inversiones',
+    co: {
+      minInvestment: 50000,
+      dailyReturn: 8600,
+      totalReturn: 258000,
+      percentage: 17.2,
+    },
+    pe: {
+      minInvestment: 130,
+      dailyReturn: 22,
+      totalReturn: 660,
+      percentage: 17.2,
+    },
     features: [
-      'Retornos diarios garantizados',
-      'Capital recuperable al finalizar',
-      'Soporte 24/7',
-      'Sin comisiones ocultas'
+      'Retiros cada 24 horas',
+      'Sin comisiones ocultas',
+      'Soporte prioritario',
     ],
-    country: 'BOTH'
   },
   {
-    id: 'basic',
-    name: 'Plan Básico',
+    id: 'basico',
+    name: 'Básico',
+    description: 'Ideal para inversores que buscan rendimientos constantes',
     icon: '💼',
-    featured: false,
-    minInvestment: { CO: 100000, PE: 260 },
-    dailyReturn: { CO: 18000, PE: 47 },
     duration: 30,
-    totalReturn: { CO: 540000, PE: 1410 },
-    roi: { CO: 18.0, PE: 18.0 },
-    description: 'Para inversores que buscan retornos constantes',
+    co: {
+      minInvestment: 100000,
+      dailyReturn: 18000,
+      totalReturn: 540000,
+      percentage: 18.0,
+    },
+    pe: {
+      minInvestment: 260,
+      dailyReturn: 47,
+      totalReturn: 1410,
+      percentage: 18.0,
+    },
     features: [
-      'Retornos diarios garantizados',
-      'Capital recuperable al finalizar',
-      'Soporte prioritario',
-      'Reportes semanales'
+      'Mayor rendimiento diario',
+      'Retiros inmediatos',
+      'Asesoría personalizada',
     ],
-    country: 'BOTH'
   },
   {
     id: 'silver',
-    name: 'Plan Silver',
+    name: 'Silver',
+    description: 'Plan intermedio con excelentes beneficios y rentabilidad',
     icon: '🥈',
-    featured: false,
-    minInvestment: { CO: 250000, PE: 650 },
-    dailyReturn: { CO: 47500, PE: 123 },
     duration: 45,
-    totalReturn: { CO: 2137500, PE: 5535 },
-    roi: { CO: 19.0, PE: 19.0 },
-    description: 'Equilibrio perfecto entre riesgo y rentabilidad',
+    co: {
+      minInvestment: 250000,
+      dailyReturn: 47500,
+      totalReturn: 2137500,
+      percentage: 19.0,
+    },
+    pe: {
+      minInvestment: 650,
+      dailyReturn: 123,
+      totalReturn: 5535,
+      percentage: 19.0,
+    },
     features: [
-      'Retornos diarios garantizados',
-      'Capital recuperable al finalizar',
-      'Asesor personal',
-      'Dashboard avanzado'
+      'Duración extendida',
+      'Mayores rendimientos',
+      'Bonos adicionales',
     ],
-    country: 'BOTH'
   },
   {
     id: 'gold',
-    name: 'Plan Gold',
+    name: 'Gold',
+    description: 'Plan premium con rendimientos superiores al mercado',
     icon: '🥇',
-    featured: true,
-    minInvestment: { CO: 500000, PE: 1300 },
-    dailyReturn: { CO: 100000, PE: 260 },
     duration: 60,
-    totalReturn: { CO: 6000000, PE: 15600 },
-    roi: { CO: 20.0, PE: 20.0 },
-    description: 'El plan más popular entre nuestros inversores',
+    co: {
+      minInvestment: 500000,
+      dailyReturn: 100000,
+      totalReturn: 6000000,
+      percentage: 20.0,
+    },
+    pe: {
+      minInvestment: 1300,
+      dailyReturn: 260,
+      totalReturn: 15600,
+      percentage: 20.0,
+    },
     features: [
-      'Retornos diarios garantizados',
-      'Capital recuperable al finalizar',
-      'Asesor VIP dedicado',
-      'Análisis mensuales personalizados'
+      'Rendimiento del 20%',
+      'Plazo de 2 meses',
+      'Gestor personal',
     ],
-    country: 'BOTH'
   },
   {
     id: 'platinum',
-    name: 'Plan Platinum',
+    name: 'Platinum',
+    description: 'Exclusivo plan de alto rendimiento para inversores serios',
     icon: '💎',
-    featured: false,
-    minInvestment: { CO: 1000000, PE: 2600 },
-    dailyReturn: { CO: 210000, PE: 546 },
     duration: 90,
-    totalReturn: { CO: 18900000, PE: 49140 },
-    roi: { CO: 21.0, PE: 21.0 },
-    description: 'Para inversores experimentados',
+    co: {
+      minInvestment: 1000000,
+      dailyReturn: 210000,
+      totalReturn: 18900000,
+      percentage: 21.0,
+    },
+    pe: {
+      minInvestment: 2600,
+      dailyReturn: 546,
+      totalReturn: 49140,
+      percentage: 21.0,
+    },
     features: [
-      'Retornos diarios garantizados',
-      'Capital recuperable al finalizar',
-      'Equipo VIP exclusivo',
-      'Webinars privados mensuales'
+      'Rendimiento del 21%',
+      'Plazo de 3 meses',
+      'Reportes semanales',
     ],
-    country: 'BOTH'
   },
   {
     id: 'diamond',
-    name: 'Plan Diamond',
+    name: 'Diamond',
+    description: 'Plan elite con los más altos rendimientos garantizados',
     icon: '💍',
-    featured: false,
-    minInvestment: { CO: 2500000, PE: 6500 },
-    dailyReturn: { CO: 550000, PE: 1430 },
     duration: 120,
-    totalReturn: { CO: 66000000, PE: 171600 },
-    roi: { CO: 22.0, PE: 22.0 },
-    description: 'Exclusivo para grandes inversores',
+    co: {
+      minInvestment: 2500000,
+      dailyReturn: 550000,
+      totalReturn: 66000000,
+      percentage: 22.0,
+    },
+    pe: {
+      minInvestment: 6500,
+      dailyReturn: 1430,
+      totalReturn: 171600,
+      percentage: 22.0,
+    },
     features: [
-      'Retornos diarios garantizados',
-      'Capital recuperable al finalizar',
-      'Gerente de cuenta personal',
-      'Acceso a oportunidades exclusivas'
+      'Rendimiento del 22%',
+      'Plazo de 4 meses',
+      'Análisis detallados',
     ],
-    country: 'BOTH'
   },
   {
     id: 'elite',
-    name: 'Plan Elite',
+    name: 'Elite',
+    description: 'Máximo nivel de inversión con beneficios extraordinarios',
     icon: '👑',
-    featured: false,
-    minInvestment: { CO: 5000000, PE: 13000 },
-    dailyReturn: { CO: 1150000, PE: 2990 },
     duration: 180,
-    totalReturn: { CO: 207000000, PE: 538200 },
-    roi: { CO: 23.0, PE: 23.0 },
-    description: 'Rendimientos superiores a largo plazo',
+    co: {
+      minInvestment: 5000000,
+      dailyReturn: 1150000,
+      totalReturn: 207000000,
+      percentage: 23.0,
+    },
+    pe: {
+      minInvestment: 13000,
+      dailyReturn: 2990,
+      totalReturn: 538200,
+      percentage: 23.0,
+    },
     features: [
-      'Retornos diarios garantizados',
-      'Capital recuperable al finalizar',
-      'Asesoría estratégica personalizada',
-      'Networking con inversores élite'
+      'Rendimiento del 23%',
+      'Plazo de 6 meses',
+      'Acceso VIP a eventos',
     ],
-    country: 'BOTH'
   },
   {
     id: 'vip',
-    name: 'Plan VIP',
+    name: 'VIP',
+    description: 'Plan anual para grandes inversionistas institucionales',
     icon: '🏆',
-    featured: false,
-    minInvestment: { CO: 10000000, PE: 26000 },
-    dailyReturn: { CO: 2400000, PE: 6240 },
     duration: 365,
-    totalReturn: { CO: 876000000, PE: 2277600 },
-    roi: { CO: 24.0, PE: 24.0 },
-    description: 'El nivel más alto de inversión',
+    co: {
+      minInvestment: 10000000,
+      dailyReturn: 2400000,
+      totalReturn: 876000000,
+      percentage: 24.0,
+    },
+    pe: {
+      minInvestment: 26000,
+      dailyReturn: 6240,
+      totalReturn: 2277600,
+      percentage: 24.0,
+    },
     features: [
-      'Retornos diarios garantizados',
-      'Capital recuperable al finalizar',
-      'Suite completa de servicios VIP',
-      'Eventos exclusivos anuales'
+      'Rendimiento del 24%',
+      'Plan anual completo',
+      'Beneficios exclusivos',
     ],
-    country: 'BOTH'
   },
   {
     id: 'express',
-    name: 'Plan Express',
+    name: 'Express',
+    description: 'Plan corto para rendimientos rápidos en 15 días',
     icon: '⚡',
-    featured: false,
-    minInvestment: { CO: 75000, PE: 195 },
-    dailyReturn: { CO: 12750, PE: 33 },
     duration: 15,
-    totalReturn: { CO: 191250, PE: 495 },
-    roi: { CO: 17.0, PE: 17.0 },
-    description: 'Retornos rápidos en corto plazo',
+    co: {
+      minInvestment: 75000,
+      dailyReturn: 12750,
+      totalReturn: 191250,
+      percentage: 17.0,
+    },
+    pe: {
+      minInvestment: 195,
+      dailyReturn: 33,
+      totalReturn: 495,
+      percentage: 17.0,
+    },
     features: [
-      'Retornos diarios garantizados',
-      'Capital recuperable en 15 días',
-      'Ideal para prueba inicial',
-      'Proceso simplificado'
+      'Ciclo corto de 15 días',
+      'Retornos rápidos',
+      'Reinversión automática',
     ],
-    country: 'BOTH'
   },
   {
     id: 'pro',
-    name: 'Plan Pro',
+    name: 'Pro',
+    description: 'Plan profesional con balance perfecto entre tiempo y rendimiento',
     icon: '🎯',
-    featured: false,
-    minInvestment: { CO: 750000, PE: 1950 },
-    dailyReturn: { CO: 157500, PE: 409 },
     duration: 60,
-    totalReturn: { CO: 9450000, PE: 24540 },
-    roi: { CO: 21.0, PE: 21.0 },
-    description: 'Para profesionales de la inversión',
+    co: {
+      minInvestment: 750000,
+      dailyReturn: 157500,
+      totalReturn: 9450000,
+      percentage: 21.0,
+    },
+    pe: {
+      minInvestment: 1950,
+      dailyReturn: 409,
+      totalReturn: 24540,
+      percentage: 21.0,
+    },
     features: [
-      'Retornos diarios garantizados',
-      'Capital recuperable al finalizar',
-      'Análisis técnico semanal',
-      'Señales de inversión premium'
+      'Equilibrio óptimo',
+      'Rendimiento del 21%',
+      'Dashboard avanzado',
     ],
-    country: 'BOTH'
   },
   {
     id: 'ultra',
-    name: 'Plan Ultra',
+    name: 'Ultra',
+    description: 'Inversión superior con tecnología de punta',
     icon: '🚀',
-    featured: false,
-    minInvestment: { CO: 3000000, PE: 7800 },
-    dailyReturn: { CO: 660000, PE: 1716 },
     duration: 90,
-    totalReturn: { CO: 59400000, PE: 154440 },
-    roi: { CO: 22.0, PE: 22.0 },
-    description: 'Rendimientos ultra-competitivos',
+    co: {
+      minInvestment: 3000000,
+      dailyReturn: 660000,
+      totalReturn: 59400000,
+      percentage: 22.0,
+    },
+    pe: {
+      minInvestment: 7800,
+      dailyReturn: 1716,
+      totalReturn: 154440,
+      percentage: 22.0,
+    },
     features: [
-      'Retornos diarios garantizados',
-      'Capital recuperable al finalizar',
-      'Portafolio diversificado',
-      'Estrategias avanzadas de inversión'
+      'Tecnología AI avanzada',
+      'Predicciones de mercado',
+      'Soporte 24/7',
     ],
-    country: 'BOTH'
   },
   {
     id: 'supreme',
-    name: 'Plan Supreme',
+    name: 'Supreme',
+    description: 'El plan supremo para maximizar tu patrimonio',
     icon: '⭐',
-    featured: false,
-    minInvestment: { CO: 7500000, PE: 19500 },
-    dailyReturn: { CO: 1725000, PE: 4485 },
     duration: 180,
-    totalReturn: { CO: 310500000, PE: 807300 },
-    roi: { CO: 23.0, PE: 23.0 },
-    description: 'La cúspide de las oportunidades de inversión',
+    co: {
+      minInvestment: 7500000,
+      dailyReturn: 1725000,
+      totalReturn: 310500000,
+      percentage: 23.0,
+    },
+    pe: {
+      minInvestment: 19500,
+      dailyReturn: 4485,
+      totalReturn: 807300,
+      percentage: 23.0,
+    },
     features: [
-      'Retornos diarios garantizados',
-      'Capital recuperable al finalizar',
-      'Consultoría estratégica integral',
-      'Acceso a fondos institucionales'
+      'Máximo rendimiento',
+      'Estrategias personalizadas',
+      'Concierge financiero',
     ],
-    country: 'BOTH'
-  }
-]
+  },
+];
 
-// Utility functions
+/**
+ * Obtiene un plan por ID
+ */
 export const getPlanById = (planId) => {
-  return INVESTMENT_PLANS.find(plan => plan.id === planId)
-}
+  return INVESTMENT_PLANS.find(plan => plan.id === planId);
+};
 
-export const getPlansByCountry = (country) => {
-  return INVESTMENT_PLANS.filter(plan => plan.country === 'BOTH' || plan.country === country)
-}
+/**
+ * Obtiene planes ordenados por inversión mínima
+ */
+export const getPlansOrderedByAmount = (country) => {
+  return [...INVESTMENT_PLANS].sort((a, b) => {
+    const amountA = country === 'CO' ? a.co.minInvestment : a.pe.minInvestment;
+    const amountB = country === 'CO' ? b.co.minInvestment : b.pe.minInvestment;
+    return amountA - amountB;
+  });
+};
 
-export const getFeaturedPlans = () => {
-  return INVESTMENT_PLANS.filter(plan => plan.featured)
-}
-
-export const getPlansOrderedByAmount = (country, ascending = true) => {
-  const plans = [...INVESTMENT_PLANS]
-  return plans.sort((a, b) => {
-    const amountA = a.minInvestment[country]
-    const amountB = b.minInvestment[country]
-    return ascending ? amountA - amountB : amountB - amountA
-  })
-}
-
-export const getPlansOrderedByDuration = (ascending = true) => {
-  const plans = [...INVESTMENT_PLANS]
-  return plans.sort((a, b) => ascending ? a.duration - b.duration : b.duration - a.duration)
-}
-
-export const getPlansOrderedByROI = (country, ascending = false) => {
-  const plans = [...INVESTMENT_PLANS]
-  return plans.sort((a, b) => {
-    const roiA = a.roi[country]
-    const roiB = b.roi[country]
-    return ascending ? roiA - roiB : roiB - roiA
-  })
-}
+/**
+ * Filtra planes por rango de inversión
+ */
+export const getPlansInRange = (country, minAmount, maxAmount) => {
+  return INVESTMENT_PLANS.filter(plan => {
+    const amount = country === 'CO' ? plan.co.minInvestment : plan.pe.minInvestment;
+    return amount >= minAmount && amount <= maxAmount;
+  });
+};
