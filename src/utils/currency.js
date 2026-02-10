@@ -1,83 +1,98 @@
+import { CURRENCIES, CURRENCY_SYMBOLS } from './constants';
+
 /**
- * Format currency based on country code
- * @param {number} amount - The amount to format
- * @param {string} country - Country code (CO or PE)
- * @returns {string} Formatted currency string
+ * Formatea un monto según el país del usuario
+ * @param {number} amount - Monto a formatear
+ * @param {string} country - Código del país ('CO' o 'PE')
+ * @returns {string} - Monto formateado con símbolo de moneda
  */
-export function formatCurrency(amount, country) {
-  if (!amount && amount !== 0) return '-'
+export const formatCurrency = (amount, country) => {
+  if (!amount && amount !== 0) return '-';
   
-  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount
+  const currency = CURRENCIES[country];
+  const symbol = CURRENCY_SYMBOLS[currency];
   
-  if (isNaN(numAmount)) return '-'
-  
+  // Formatear según el país
   if (country === 'CO') {
-    // Colombia: Peso Colombiano (COP)
-    // Format: $ 50.000 COP (no decimals, thousand separator with period)
-    return `$ ${numAmount.toLocaleString('es-CO', {
+    // Colombia: $ 1.234.567 COP
+    const formatted = new Intl.NumberFormat('es-CO', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    })} COP`
+    }).format(amount);
+    
+    return `${symbol} ${formatted} COP`;
   } else if (country === 'PE') {
-    // Peru: Sol Peruano (PEN)
-    // Format: S/ 130.00 PEN (2 decimals, thousand separator with comma)
-    return `S/ ${numAmount.toLocaleString('es-PE', {
+    // Perú: S/ 1,234.56 PEN
+    const formatted = new Intl.NumberFormat('es-PE', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    })} PEN`
+    }).format(amount);
+    
+    return `${symbol} ${formatted} PEN`;
   }
   
-  return amount.toString()
-}
+  return `${symbol} ${amount}`;
+};
 
 /**
- * Get currency symbol for country
+ * Formatea un monto compacto para espacios pequeños
+ * @param {number} amount - Monto a formatear
+ * @param {string} country - Código del país
+ * @returns {string} - Monto formateado compacto
  */
-export function getCurrencySymbol(country) {
-  return country === 'CO' ? '$' : 'S/'
-}
-
-/**
- * Get currency code for country
- */
-export function getCurrencyCode(country) {
-  return country === 'CO' ? 'COP' : 'PEN'
-}
-
-/**
- * Parse currency string back to number
- */
-export function parseCurrency(currencyString) {
-  if (!currencyString) return 0
+export const formatCurrencyCompact = (amount, country) => {
+  if (!amount && amount !== 0) return '-';
   
-  // Remove currency symbols and letters
-  const cleaned = currencyString
-    .replace(/[$S/COP PEN,]/g, '')
-    .replace(/\./g, '')
-    .trim()
+  const currency = CURRENCIES[country];
+  const symbol = CURRENCY_SYMBOLS[currency];
   
-  return parseFloat(cleaned) || 0
-}
-
-/**
- * Format number for input (without currency symbols)
- */
-export function formatNumberInput(amount, country) {
-  if (!amount && amount !== 0) return ''
-  
-  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount
-  
-  if (isNaN(numAmount)) return ''
-  
-  if (country === 'CO') {
-    return numAmount.toLocaleString('es-CO', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    })
-  } else {
-    return numAmount.toLocaleString('es-PE', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
+  if (amount >= 1000000) {
+    return `${symbol} ${(amount / 1000000).toFixed(1)}M`;
+  } else if (amount >= 1000) {
+    return `${symbol} ${(amount / 1000).toFixed(1)}K`;
   }
-}
+  
+  return `${symbol} ${amount.toFixed(country === 'PE' ? 2 : 0)}`;
+};
+
+/**
+ * Parsea un string de moneda a número
+ * @param {string} value - Valor a parsear
+ * @returns {number} - Número parseado
+ */
+export const parseCurrency = (value) => {
+  if (!value) return 0;
+  
+  // Remover símbolos y espacios
+  const cleaned = value.replace(/[^0-9.-]/g, '');
+  return parseFloat(cleaned) || 0;
+};
+
+/**
+ * Valida que un monto sea un número válido
+ * @param {any} amount - Monto a validar
+ * @returns {boolean} - true si es válido
+ */
+export const isValidAmount = (amount) => {
+  const num = typeof amount === 'string' ? parseCurrency(amount) : amount;
+  return !isNaN(num) && num > 0;
+};
+
+/**
+ * Obtiene el símbolo de moneda según el país
+ * @param {string} country - Código del país
+ * @returns {string} - Símbolo de moneda
+ */
+export const getCurrencySymbol = (country) => {
+  const currency = CURRENCIES[country];
+  return CURRENCY_SYMBOLS[currency] || '$';
+};
+
+/**
+ * Obtiene el código de moneda según el país
+ * @param {string} country - Código del país
+ * @returns {string} - Código de moneda (COP o PEN)
+ */
+export const getCurrencyCode = (country) => {
+  return CURRENCIES[country] || 'COP';
+};

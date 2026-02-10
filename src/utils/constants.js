@@ -1,45 +1,102 @@
-// Country codes
+// Constantes de la aplicación MONETA-ICT
+
 export const COUNTRIES = {
   COLOMBIA: 'CO',
   PERU: 'PE',
-}
+};
 
-// Currency limits by country
+export const COUNTRY_NAMES = {
+  CO: 'Colombia',
+  PE: 'Perú',
+};
+
+export const CURRENCIES = {
+  CO: 'COP',
+  PE: 'PEN',
+};
+
+export const CURRENCY_SYMBOLS = {
+  COP: '$',
+  PEN: 'S/',
+};
+
+export const PHONE_PREFIXES = {
+  CO: '+57',
+  PE: '+51',
+};
+
+// Límites de transacciones POR PAÍS
 export const LIMITS = {
   CO: {
     MIN_DEPOSIT: 40000,
     MIN_WITHDRAWAL: 25000,
-    REFERRAL_BONUS: 12000,
     WELCOME_BONUS: 12000,
+    MIN_INVESTMENT: 50000,
   },
   PE: {
     MIN_DEPOSIT: 35,
     MIN_WITHDRAWAL: 22,
-    REFERRAL_BONUS: 10,
     WELCOME_BONUS: 10,
+    MIN_INVESTMENT: 45,
   },
-}
+};
 
-// Bank information by country
+// Estados de transacciones
+export const TRANSACTION_STATUS = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  ACTIVE: 'active',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+};
+
+export const TRANSACTION_STATUS_LABELS = {
+  pending: 'Pendiente',
+  approved: 'Aprobado',
+  rejected: 'Rechazado',
+  active: 'Activa',
+  completed: 'Completada',
+  cancelled: 'Cancelada',
+};
+
+// Tipos de transacciones
+export const TRANSACTION_TYPES = {
+  DEPOSIT: 'deposit',
+  WITHDRAWAL: 'withdrawal',
+  INVESTMENT: 'investment',
+  REFERRAL: 'referral',
+  DAILY_RETURN: 'daily_return',
+  WELCOME_BONUS: 'welcome_bonus',
+};
+
+export const TRANSACTION_TYPE_LABELS = {
+  deposit: 'Depósito',
+  withdrawal: 'Retiro',
+  investment: 'Inversión',
+  referral: 'Referido',
+  daily_return: 'Ganancia Diaria',
+  welcome_bonus: 'Bono de Bienvenida',
+};
+
+// Información bancaria POR PAÍS
 export const BANK_INFO = {
   CO: {
     bank: 'Bancolombia',
-    accountNumber: '123-456789-01',
+    accountNumber: '00100007120',
     accountType: 'Ahorros',
-    accountHolder: 'MONETA-ICT SAS',
-    taxId: '901.234.567-8',
+    holder: 'Jose Jimenez C.',
   },
   PE: {
-    bank: 'BCP - Banco de Crédito del Perú',
-    accountNumber: '123-456789-01',
-    accountType: 'Ahorros',
-    accountHolder: 'MONETA-ICT SAC',
-    taxId: '20601234567',
+    bank: 'PLIN',
+    accountNumber: '935460768',
+    accountType: '',
+    holder: 'ELISIA RIOS',
   },
-}
+};
 
-// Banks by country
-export const BANKS = {
+// Bancos disponibles para retiros POR PAÍS
+export const AVAILABLE_BANKS = {
   CO: [
     'Bancolombia',
     'Banco de Bogotá',
@@ -63,59 +120,16 @@ export const BANKS = {
     'Yape',
     'Plin',
   ],
-}
+};
 
-// Transaction types
-export const TRANSACTION_TYPES = {
-  DEPOSIT: 'deposit',
-  WITHDRAWAL: 'withdrawal',
-  INVESTMENT: 'investment',
-  DAILY_RETURN: 'daily_return',
-  REFERRAL_BONUS: 'referral_bonus',
-}
+// Tipos de cuenta
+export const ACCOUNT_TYPES = ['Ahorros', 'Corriente'];
 
-// Transaction statuses
-export const TRANSACTION_STATUS = {
-  PENDING: 'pending',
-  APPROVED: 'approved',
-  REJECTED: 'rejected',
-  ACTIVE: 'active',
-  COMPLETED: 'completed',
-  CANCELLED: 'cancelled',
-}
-
-// Investment plan IDs
-export const PLAN_IDS = {
-  STARTER: 'starter',
-  BASIC: 'basic',
-  SILVER: 'silver',
-  GOLD: 'gold',
-  PLATINUM: 'platinum',
-  DIAMOND: 'diamond',
-  ELITE: 'elite',
-  VIP: 'vip',
-  EXPRESS: 'express',
-  PRO: 'pro',
-  ULTRA: 'ultra',
-  SUPREME: 'supreme',
-}
-
-// User roles
+// Roles de usuario
 export const USER_ROLES = {
   USER: 'user',
   ADMIN: 'admin',
-}
+};
 
-// Pagination
-export const ITEMS_PER_PAGE = 10
-
-// File upload
-export const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
-export const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
-
-// App configuration
-export const APP_CONFIG = {
-  APP_NAME: 'MONETA-ICT',
-  SUPPORT_EMAIL: 'soporte@moneta-ict.com',
-  APPROVAL_TIME_HOURS: 48,
-}
+// Duración del token (para futuro backend)
+export const TOKEN_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 días en milisegundos

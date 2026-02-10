@@ -1,150 +1,103 @@
 /**
- * Validation utilities for forms and inputs
+ * Valida formato de email
  */
+export const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
 
-// Email validation
-export function isValidEmail(email) {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email)
-}
+/**
+ * Valida formato de teléfono colombiano (+57)
+ */
+export const isValidColombianPhone = (phone) => {
+  // Formato: +57 3001234567 (10 dígitos después del +57)
+  const phoneRegex = /^\+57\s?[0-9]{10}$/;
+  return phoneRegex.test(phone.replace(/\s/g, ''));
+};
 
-// Password validation (minimum 8 characters)
-export function isValidPassword(password) {
-  return password && password.length >= 8
-}
+/**
+ * Valida formato de teléfono peruano (+51)
+ */
+export const isValidPeruvianPhone = (phone) => {
+  // Formato: +51 912345678 (9 dígitos después del +51)
+  const phoneRegex = /^\+51\s?[0-9]{9}$/;
+  return phoneRegex.test(phone.replace(/\s/g, ''));
+};
 
-// Phone validation by country
-export function isValidPhone(phone, country) {
-  if (!phone) return false
-  
-  // Remove spaces and dashes
-  const cleaned = phone.replace(/[\s-]/g, '')
-  
+/**
+ * Valida teléfono según país
+ */
+export const isValidPhone = (phone, country) => {
   if (country === 'CO') {
-    // Colombia: +57 followed by 10 digits
-    return /^\+57\d{10}$/.test(cleaned)
+    return isValidColombianPhone(phone);
   } else if (country === 'PE') {
-    // Peru: +51 followed by 9 digits
-    return /^\+51\d{9}$/.test(cleaned)
+    return isValidPeruvianPhone(phone);
   }
-  
-  return false
-}
+  return false;
+};
 
-// Account number validation (8-20 digits)
-export function isValidAccountNumber(accountNumber) {
-  if (!accountNumber) return false
-  const cleaned = accountNumber.replace(/[\s-]/g, '')
-  return /^\d{8,20}$/.test(cleaned)
-}
+/**
+ * Valida contraseña (mínimo 8 caracteres)
+ */
+export const isValidPassword = (password) => {
+  return password && password.length >= 8;
+};
 
-// Amount validation
-export function isValidAmount(amount, min = 0, max = Infinity) {
-  const num = typeof amount === 'string' ? parseFloat(amount) : amount
-  return !isNaN(num) && num >= min && num <= max
-}
+/**
+ * Valida que las contraseñas coincidan
+ */
+export const passwordsMatch = (password, confirmPassword) => {
+  return password === confirmPassword;
+};
 
-// Name validation (at least 2 words)
-export function isValidFullName(name) {
-  if (!name) return false
-  const words = name.trim().split(/\s+/)
-  return words.length >= 2 && words.every(word => word.length > 0)
-}
+/**
+ * Valida nombre completo (mínimo 2 palabras)
+ */
+export const isValidFullName = (name) => {
+  const trimmed = name.trim();
+  const words = trimmed.split(/\s+/);
+  return words.length >= 2 && trimmed.length >= 5;
+};
 
-// File validation
-export function isValidFile(file, allowedTypes, maxSize) {
-  if (!file) return false
-  
-  // Check file type
-  if (allowedTypes && !allowedTypes.includes(file.type)) {
-    return false
-  }
-  
-  // Check file size
-  if (maxSize && file.size > maxSize) {
-    return false
-  }
-  
-  return true
-}
+/**
+ * Valida número de cuenta bancaria
+ */
+export const isValidAccountNumber = (accountNumber) => {
+  // Debe tener al menos 8 dígitos
+  const cleaned = accountNumber.replace(/\D/g, '');
+  return cleaned.length >= 8 && cleaned.length <= 20;
+};
 
-// Referral code validation (6 alphanumeric characters)
-export function isValidReferralCode(code) {
-  if (!code) return true // Optional field
-  return /^[A-Z0-9]{6}$/.test(code)
-}
+/**
+ * Sanitiza input para prevenir XSS
+ */
+export const sanitizeInput = (input) => {
+  if (typeof input !== 'string') return input;
+  
+  return input
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;');
+};
 
-// Format phone number with country prefix
-export function formatPhoneNumber(phone, country) {
-  if (!phone) return ''
+/**
+ * Valida que un archivo sea una imagen válida
+ */
+export const isValidImageFile = (file) => {
+  if (!file) return false;
   
-  // Remove all non-digit characters
-  const digits = phone.replace(/\D/g, '')
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+  const maxSize = 5 * 1024 * 1024; // 5MB
   
-  if (country === 'CO') {
-    // Colombia: +57 3001234567
-    if (digits.length === 10) {
-      return `+57 ${digits}`
-    } else if (digits.length === 12 && digits.startsWith('57')) {
-      return `+${digits.slice(0, 2)} ${digits.slice(2)}`
-    }
-  } else if (country === 'PE') {
-    // Peru: +51 912345678
-    if (digits.length === 9) {
-      return `+51 ${digits}`
-    } else if (digits.length === 11 && digits.startsWith('51')) {
-      return `+${digits.slice(0, 2)} ${digits.slice(2)}`
-    }
-  }
-  
-  return phone
-}
+  return validTypes.includes(file.type) && file.size <= maxSize;
+};
 
-// Generate random referral code
-export function generateReferralCode() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  let code = ''
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return code
-}
-
-// Format date for display
-export function formatDate(dateString) {
-  if (!dateString) return '-'
-  
-  const date = new Date(dateString)
-  
-  if (isNaN(date.getTime())) return '-'
-  
-  // Format: DD/MM/YYYY
-  const day = date.getDate().toString().padStart(2, '0')
-  const month = (date.getMonth() + 1).toString().padStart(2, '0')
-  const year = date.getFullYear()
-  
-  return `${day}/${month}/${year}`
-}
-
-// Format date with time
-export function formatDateTime(dateString) {
-  if (!dateString) return '-'
-  
-  const date = new Date(dateString)
-  
-  if (isNaN(date.getTime())) return '-'
-  
-  const dateStr = formatDate(dateString)
-  const hours = date.getHours().toString().padStart(2, '0')
-  const minutes = date.getMinutes().toString().padStart(2, '0')
-  
-  return `${dateStr} ${hours}:${minutes}`
-}
-
-// Calculate days difference
-export function daysDifference(date1, date2) {
-  const d1 = new Date(date1)
-  const d2 = new Date(date2)
-  const diffTime = Math.abs(d2 - d1)
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-}
+/**
+ * Valida código de referido (6 caracteres alfanuméricos)
+ */
+export const isValidReferralCode = (code) => {
+  const codeRegex = /^[A-Z0-9]{6}$/;
+  return codeRegex.test(code);
+};
