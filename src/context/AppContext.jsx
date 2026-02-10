@@ -1,173 +1,181 @@
-import { createContext, useContext, useState, useEffect } from 'react'
-import { useAuth } from './AuthContext'
-import toast from 'react-hot-toast'
-import { TRANSACTION_TYPES, TRANSACTION_STATUS } from '../utils/constants'
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 
-const AppContext = createContext(null)
+const AppContext = createContext(null);
 
-export const useApp = () => {
-  const context = useContext(AppContext)
-  if (!context) {
-    throw new Error('useApp must be used within AppProvider')
-  }
-  return context
-}
-
+/**
+ * Provider global de la aplicación
+ * Maneja transacciones, inversiones y datos globales
+ */
 export const AppProvider = ({ children }) => {
-  const { user, updateUser } = useAuth()
-  const [transactions, setTransactions] = useState([])
-  const [investments, setInvestments] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { user } = useAuth();
+  const [transactions, setTransactions] = useState([]);
+  const [investments, setInvestments] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Load user data when user changes
+  // Cargar datos cuando el usuario inicia sesión
   useEffect(() => {
-    if (user?.id) {
-      loadUserData()
+    if (user) {
+      loadUserData();
     } else {
-      setTransactions([])
-      setInvestments([])
-      setLoading(false)
+      // Limpiar datos al cerrar sesión
+      setTransactions([]);
+      setInvestments([]);
     }
-  }, [user?.id])
+  }, [user]);
 
-  // Load user transactions and investments
+  /**
+   * Cargar datos del usuario desde localStorage
+   */
   const loadUserData = () => {
-    setLoading(true)
-    
     try {
-      // Load transactions
-      const txKey = `moneta_transactions_${user.id}`
-      const storedTx = localStorage.getItem(txKey)
-      setTransactions(storedTx ? JSON.parse(storedTx) : [])
+      // Cargar transacciones
+      const transKey = `moneta_transactions_${user.id}`;
+      const transData = localStorage.getItem(transKey);
+      if (transData) {
+        setTransactions(JSON.parse(transData));
+      }
 
-      // Load investments
-      const invKey = `moneta_investments_${user.id}`
-      const storedInv = localStorage.getItem(invKey)
-      setInvestments(storedInv ? JSON.parse(storedInv) : [])
+      // Cargar inversiones
+      const invKey = `moneta_investments_${user.id}`;
+      const invData = localStorage.getItem(invKey);
+      if (invData) {
+        setInvestments(JSON.parse(invData));
+      }
     } catch (error) {
-      console.error('Error loading user data:', error)
-    } finally {
-      setLoading(false)
+      console.error('Error loading user data:', error);
     }
-  }
+  };
 
-  // Create deposit request
-  const createDeposit = (depositData) => {
+  /**
+   * Agregar una transacción
+   */
+  const addTransaction = (transaction) => {
+    if (!user) return;
+
     const newTransaction = {
-      id: `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: Date.now().toString(),
       userId: user.id,
-      type: TRANSACTION_TYPES.DEPOSIT,
-      amount: depositData.amount,
-      status: TRANSACTION_STATUS.PENDING,
-      proofFile: depositData.proofFile, // Base64 or file reference
       createdAt: new Date().toISOString(),
-    }
+      ...transaction,
+    };
 
-    const updatedTransactions = [newTransaction, ...transactions]
-    setTransactions(updatedTransactions)
-    localStorage.setItem(`moneta_transactions_${user.id}`, JSON.stringify(updatedTransactions))
+    const updated = [newTransaction, ...transactions];
+    setTransactions(updated);
 
-    toast.success('Depósito en revisión. Recibirás confirmación en 24-48h')
-    return newTransaction
-  }
+    // Guardar en localStorage
+    const transKey = `moneta_transactions_${user.id}`;
+    localStorage.setItem(transKey, JSON.stringify(updated));
 
-  // Create withdrawal request
-  const createWithdrawal = (withdrawalData) => {
-    const newTransaction = {
-      id: `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      userId: user.id,
-      type: TRANSACTION_TYPES.WITHDRAWAL,
-      amount: withdrawalData.amount,
-      status: TRANSACTION_STATUS.PENDING,
-      bankName: withdrawalData.bank,
-      accountNumber: withdrawalData.accountNumber,
-      accountType: withdrawalData.accountType,
-      createdAt: new Date().toISOString(),
-    }
+    return newTransaction;
+  };
 
-    const updatedTransactions = [newTransaction, ...transactions]
-    setTransactions(updatedTransactions)
-    localStorage.setItem(`moneta_transactions_${user.id}`, JSON.stringify(updatedTransactions))
+  /**
+   * Actualizar una transacción
+   */
+  const updateTransaction = (id, updates) => {
+    const updated = transactions.map(t => 
+      t.id === id ? { ...t, ...updates } : t
+    );
+    setTransactions(updated);
 
-    toast.success('Retiro en proceso. Aprobación en 24-48h')
-    return newTransaction
-  }
+    // Guardar en localStorage
+    const transKey = `moneta_transactions_${user.id}`;
+    localStorage.setItem(transKey, JSON.stringify(updated));
+  };
 
-  // Create investment
-  const createInvestment = (investmentData) => {
-    const startDate = new Date()
-    const endDate = new Date(startDate)
-    endDate.setDate(endDate.getDate() + investmentData.duration)
+  /**
+   * Agregar una inversión
+   */
+  const addInvestment = (investment) => {
+    if (!user) return;
 
     const newInvestment = {
-      id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: Date.now().toString(),
       userId: user.id,
-      planId: investmentData.planId,
-      planName: investmentData.planName,
-      amount: investmentData.amount,
-      dailyReturn: investmentData.dailyReturn,
-      duration: investmentData.duration,
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      status: TRANSACTION_STATUS.ACTIVE,
       createdAt: new Date().toISOString(),
-    }
+      ...investment,
+    };
 
-    const updatedInvestments = [newInvestment, ...investments]
-    setInvestments(updatedInvestments)
-    localStorage.setItem(`moneta_investments_${user.id}`, JSON.stringify(updatedInvestments))
+    const updated = [newInvestment, ...investments];
+    setInvestments(updated);
 
-    // Create transaction record
-    const newTransaction = {
-      id: `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      userId: user.id,
-      type: TRANSACTION_TYPES.INVESTMENT,
-      amount: investmentData.amount,
-      status: TRANSACTION_STATUS.ACTIVE,
-      reference: newInvestment.id,
-      createdAt: new Date().toISOString(),
-    }
+    // Guardar en localStorage
+    const invKey = `moneta_investments_${user.id}`;
+    localStorage.setItem(invKey, JSON.stringify(updated));
 
-    const updatedTransactions = [newTransaction, ...transactions]
-    setTransactions(updatedTransactions)
-    localStorage.setItem(`moneta_transactions_${user.id}`, JSON.stringify(updatedTransactions))
+    return newInvestment;
+  };
 
-    const currency = user.country === 'CO' ? 'COP' : 'PEN'
-    const symbol = user.country === 'CO' ? '$' : 'S/'
-    toast.success(`¡Inversión exitosa! Comenzarás a recibir ${symbol}${investmentData.dailyReturn.toLocaleString()} ${currency} diarios`)
-    
-    return newInvestment
-  }
+  /**
+   * Actualizar una inversión
+   */
+  const updateInvestment = (id, updates) => {
+    const updated = investments.map(inv => 
+      inv.id === id ? { ...inv, ...updates } : inv
+    );
+    setInvestments(updated);
 
-  // Get active investments count
-  const getActiveInvestmentsCount = () => {
-    return investments.filter(inv => inv.status === TRANSACTION_STATUS.ACTIVE).length
-  }
+    // Guardar en localStorage
+    const invKey = `moneta_investments_${user.id}`;
+    localStorage.setItem(invKey, JSON.stringify(updated));
+  };
 
-  // Get total earnings (approved daily returns)
+  /**
+   * Obtener balance del usuario
+   */
+  const getBalance = () => {
+    return user?.balance || 0;
+  };
+
+  /**
+   * Obtener inversiones activas
+   */
+  const getActiveInvestments = () => {
+    return investments.filter(inv => inv.status === 'active');
+  };
+
+  /**
+   * Obtener ganancias totales
+   */
   const getTotalEarnings = () => {
+    // Sumar todas las transacciones de tipo 'daily_return'
     return transactions
-      .filter(tx => tx.type === TRANSACTION_TYPES.DAILY_RETURN && tx.status === TRANSACTION_STATUS.APPROVED)
-      .reduce((sum, tx) => sum + tx.amount, 0)
-  }
+      .filter(t => t.type === 'daily_return' && t.status === 'approved')
+      .reduce((sum, t) => sum + t.amount, 0);
+  };
 
-  // Get recent transactions (last N)
-  const getRecentTransactions = (count = 3) => {
-    return transactions.slice(0, count)
-  }
+  /**
+   * Obtener transacciones recientes (últimas 3)
+   */
+  const getRecentTransactions = () => {
+    return transactions.slice(0, 3);
+  };
 
   const value = {
     transactions,
     investments,
-    loading,
-    createDeposit,
-    createWithdrawal,
-    createInvestment,
-    getActiveInvestmentsCount,
+    isLoading,
+    addTransaction,
+    updateTransaction,
+    addInvestment,
+    updateInvestment,
+    getBalance,
+    getActiveInvestments,
     getTotalEarnings,
     getRecentTransactions,
-    refreshData: loadUserData,
-  }
+  };
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>
-}
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+};
+
+/**
+ * Hook para usar el contexto de la aplicación
+ */
+export const useApp = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error('useApp debe usarse dentro de un AppProvider');
+  }
+  return context;
+};
