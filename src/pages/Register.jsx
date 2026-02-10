@@ -24,7 +24,6 @@ export default function Register() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { register, user } = useAuth();
-  const { deposit } = useBalance();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -108,19 +107,12 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // Prepare payload for backend
       const payload = {
         ...formData,
         currency: formData.country === "CO" ? "COP" : "PEN",
       };
 
       await register(payload);
-
-      // 🎁 Welcome Bonus Credit
-      const bonusAmount =
-        formData.country === "CO" ? 12000 : 10;
-
-      deposit(bonusAmount);
 
       navigate("/dashboard", { replace: true });
     } catch (error) {
@@ -138,7 +130,6 @@ export default function Register() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-primary-600 mb-2">
             MONETA-ICT
@@ -151,7 +142,6 @@ export default function Register() {
           </p>
         </div>
 
-        {/* Welcome Bonus */}
         <div className="bg-gradient-to-r from-success-500 to-success-600 rounded-lg p-4 mb-6 text-white">
           <div className="flex items-center">
             <Gift className="w-6 h-6 mr-3" />
@@ -164,11 +154,9 @@ export default function Register() {
           </div>
         </div>
 
-        {/* Form */}
         <div className="bg-white rounded-xl shadow-lg p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-
-            {/* Name */}
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Nombre Completo *
@@ -188,7 +176,6 @@ export default function Register() {
               )}
             </div>
 
-            {/* Email & Country */}
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium mb-1">
@@ -225,94 +212,6 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Phone */}
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Teléfono *
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <input
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className={`input pl-10 ${errors.phone ? "border-red-500" : ""}`}
-                  placeholder={
-                    formData.country === "CO"
-                      ? "+57 3001234567"
-                      : "+51 912345678"
-                  }
-                />
-              </div>
-            </div>
-
-            {/* Passwords */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <input
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="input pl-10 pr-10"
-                  placeholder="Mínimo 8 caracteres"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <input
-                  name="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className="input pl-10 pr-10"
-                  placeholder="Confirmar contraseña"
-                />
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowConfirmPassword(!showConfirmPassword)
-                  }
-                  className="absolute right-3 top-3"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff size={18} />
-                  ) : (
-                    <Eye size={18} />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Terms */}
-            <div className="flex items-start">
-              <input
-                type="checkbox"
-                name="acceptTerms"
-                checked={formData.acceptTerms}
-                onChange={handleChange}
-                className="mt-1"
-              />
-              <span className="ml-2 text-sm">
-                Acepto los términos y condiciones
-              </span>
-            </div>
-
-            {errors.submit && (
-              <div className="text-red-600 text-sm">
-                {errors.submit}
-              </div>
-            )}
-
             <button
               type="submit"
               disabled={loading}
@@ -339,4 +238,4 @@ export default function Register() {
       </div>
     </div>
   );
-}
+        }
