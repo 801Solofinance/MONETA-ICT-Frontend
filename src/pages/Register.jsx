@@ -42,9 +42,7 @@ export default function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      navigate("/dashboard", { replace: true });
-    }
+    if (user) navigate("/dashboard", { replace: true });
   }, [user, navigate]);
 
   const handleChange = (e) => {
@@ -55,50 +53,38 @@ export default function Register() {
       newValue = formatPhoneNumber(value, formData.country);
     }
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
-
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
+    setFormData((prev) => ({ ...prev, [name]: newValue }));
   };
 
   const validate = () => {
     const newErrors = {};
 
-    if (!isValidFullName(formData.name)) {
-      newErrors.name = "Ingresa tu nombre y apellido";
-    }
+    if (!isValidFullName(formData.name))
+      newErrors.name = "Full name required";
 
-    if (!isValidEmail(formData.email)) {
-      newErrors.email = "Ingresa un correo válido";
-    }
+    if (!isValidEmail(formData.email))
+      newErrors.email = "Valid email required";
 
-    if (!isValidPhone(formData.phone, formData.country)) {
-      const example =
-        formData.country === "CO"
-          ? "+57 3001234567"
-          : "+51 912345678";
-      newErrors.phone = `Formato inválido. Ejemplo: ${example}`;
-    }
+    if (!isValidPhone(formData.phone, formData.country))
+      newErrors.phone = "Valid phone required";
 
-    if (!formData.password || formData.password.length < 8) {
-      newErrors.password = "Mínimo 8 caracteres";
-    }
+    if (formData.password.length < 8)
+      newErrors.password = "Minimum 8 characters";
 
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Las contraseñas no coinciden";
-    }
+    if (formData.password !== formData.confirmPassword)
+      newErrors.confirmPassword = "Passwords do not match";
 
-    if (!formData.acceptTerms) {
-      newErrors.acceptTerms = "Debes aceptar los términos";
-    }
+    if (!formData.acceptTerms)
+      newErrors.acceptTerms = "You must accept terms";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
+  const getWelcomeBonus = () =>
+    formData.country === "CO"
+      ? "COP 12,000"
+      : "S/ 10";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -113,127 +99,106 @@ export default function Register() {
       };
 
       await register(payload);
-
       navigate("/dashboard", { replace: true });
     } catch (error) {
-      setErrors({ submit: error.message || "Error al registrarse" });
+      setErrors({ submit: error.message });
     } finally {
       setLoading(false);
     }
   };
 
-  const getWelcomeBonus = () =>
-    formData.country === "CO"
-      ? "$12,000 COP"
-      : "S/ 10 PEN";
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 py-12 px-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary-600 mb-2">
-            MONETA-ICT
-          </h1>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Crear Cuenta
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Comienza tu camino hacia la inversión inteligente
-          </p>
+    <div className="min-h-screen bg-gray-50 py-10 px-4">
+      <div className="max-w-xl mx-auto bg-white p-8 rounded-xl shadow-lg">
+
+        <h1 className="text-3xl font-bold text-center text-primary-600 mb-2">
+          MONETA-ICT
+        </h1>
+
+        <div className="bg-green-500 text-white p-4 rounded-lg mb-6 flex items-center">
+          <Gift className="mr-3" />
+          <span>Welcome Bonus: {getWelcomeBonus()}</span>
         </div>
 
-        <div className="bg-gradient-to-r from-success-500 to-success-600 rounded-lg p-4 mb-6 text-white">
-          <div className="flex items-center">
-            <Gift className="w-6 h-6 mr-3" />
-            <div>
-              <p className="font-semibold">¡Bono de Bienvenida!</p>
-              <p className="text-sm">
-                Recibe {getWelcomeBonus()} al registrarte
-              </p>
-            </div>
-          </div>
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
 
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nombre Completo *
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <input
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className={`input pl-10 ${errors.name ? "border-red-500" : ""}`}
-                  placeholder="Juan Pérez García"
-                />
-              </div>
-              {errors.name && (
-                <p className="text-sm text-red-600">{errors.name}</p>
-              )}
-            </div>
+          <input
+            name="name"
+            placeholder="Full Name"
+            className="input"
+            value={formData.name}
+            onChange={handleChange}
+          />
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Correo *
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <input
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className={`input pl-10 ${errors.email ? "border-red-500" : ""}`}
-                    placeholder="tu@email.com"
-                  />
-                </div>
-              </div>
+          <input
+            name="email"
+            placeholder="Email"
+            className="input"
+            value={formData.email}
+            onChange={handleChange}
+          />
 
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  País *
-                </label>
-                <div className="relative">
-                  <Globe className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <select
-                    name="country"
-                    value={formData.country}
-                    onChange={handleChange}
-                    className="input pl-10"
-                  >
-                    <option value="CO">🇨🇴 Colombia</option>
-                    <option value="PE">🇵🇪 Perú</option>
-                  </select>
-                </div>
-              </div>
-            </div>
+          <select
+            name="country"
+            className="input"
+            value={formData.country}
+            onChange={handleChange}
+          >
+            <option value="CO">🇨🇴 Colombia</option>
+            <option value="PE">🇵🇪 Peru</option>
+          </select>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn btn-primary flex justify-center"
-            >
-              {loading ? (
-                <LoadingSpinner size="sm" />
-              ) : (
-                <>
-                  <UserPlus className="mr-2" size={18} />
-                  Crear Cuenta
-                </>
-              )}
-            </button>
-          </form>
+          <input
+            name="phone"
+            placeholder="Phone Number"
+            className="input"
+            value={formData.phone}
+            onChange={handleChange}
+          />
 
-          <div className="mt-6 text-center text-sm">
-            ¿Ya tienes cuenta?{" "}
-            <Link to="/login" className="text-primary-600 font-medium">
-              Inicia sesión
-            </Link>
-          </div>
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            className="input"
+            value={formData.password}
+            onChange={handleChange}
+          />
+
+          <input
+            type="password"
+            name="confirmPassword"
+            placeholder="Confirm Password"
+            className="input"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+          />
+
+          <label className="flex items-center text-sm">
+            <input
+              type="checkbox"
+              name="acceptTerms"
+              checked={formData.acceptTerms}
+              onChange={handleChange}
+              className="mr-2"
+            />
+            Accept Terms & Conditions
+          </label>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn btn-primary w-full"
+          >
+            {loading ? <LoadingSpinner size="sm" /> : "Create Account"}
+          </button>
+        </form>
+
+        <div className="text-center mt-4 text-sm">
+          Already have account?{" "}
+          <Link to="/login" className="text-primary-600">
+            Login
+          </Link>
         </div>
       </div>
     </div>
