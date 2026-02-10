@@ -1,285 +1,571 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  Globe,
+  UserPlus,
+  Gift
+} from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import LoadingSpinner from '../components/shared/LoadingSpinner';
+import { 
+  isValidEmail, 
+  isValidPhone, 
+  isValidPassword,
+  isValidFullName 
+} from '../utils/validators';
+import { 
+  COUNTRIES, 
+  COUNTRY_NAMES, 
+  PHONE_PREFIXES,
+  LIMITS 
+} from '../utils/constants';
+import { formatCurrency } from '../utils/currency';
 
-export default function Register() {
+const Register = () => {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { register, isAuthenticated, isLoading: authLoading } = useAuth();
+
+  // Obtener código de referido de la URL si existe
+  const referralCodeFromUrl = searchParams.get('ref');
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    country: 'CO',
+    country: 'CO', // Por defecto Colombia
     password: '',
     confirmPassword: '',
-    referredBy: '',
-    agreeTerms: false
+    referredBy: referralCodeFromUrl || '',
+    acceptTerms: false,
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
 
-  const handlePhoneChange = (value) => {
-    // Format phone number based on country
-    let formatted = value.replace(/\D/g, '');
-    
-    if (formData.country === 'CO') {
-      // Colombia: +57 XXX XXX XXXX
-      if (formatted.length <= 10) {
-        formatted = formatted.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
-      }
-    } else {
-      // Peru: +51 XXX XXX XXX
-      if (formatted.length <= 9) {
-        formatted = formatted.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
+  const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Redirigir si ya está autenticado
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, authLoading, navigate]);
+
+  // Actualizar prefijo de teléfono cuando cambia el país
+  useEffect(() => {
+    if (!formData.phone.startsWith('+')) {
+      setFormData(prev => ({
+        ...prev,
+        phone: PHONE_PREFIXES[prev.country] + ' ',
+      }));
+    }
+  }, [formData.country]);
+
+  // Validación en tiempo real
+  const validateField = (name, value) => {
+    let error = '';
+
+    switch (name) {
+      case 'name':
+        if (!value) {
+          error = 'El nombre completo es obligatorio';
+        } else if (!isValidFullName(value)) {
+          error = 'Ingresa tu nombre y apellido';
+        }
+        break;
+
+      case 'email':
+        if (!value) {
+          error = 'El correo electrónico es obligatorio';
+        } else if (!isValidEmail(value)) {
+          error = 'Ingresa un correo electrónico válido';
+        }
+        break;
+
+      case 'phone':
+        if (!value) {
+          error = 'El teléfono es obligatorio';
+        } else if (!isValidPhone(value, formData.country)) {
+          const example = formData.country === 'CO' 
+            ? '+57 3001234567' 
+            : '+51 912345678';
+          error = `Formato inválido. Ejemplo: ${example}`;
+        }
+        break;
+
+      case 'password':
+        if (!value) {
+          error = 'La contraseña es obligatoria';
+        } else if (!isValidPassword(value)) {
+          error = 'La contraseña debe tener al menos 8 caracteres';
+        }
+        break;
+
+      case 'confirmPassword':
+        if (!value) {
+          error = 'Confirma tu contraseña';
+        } else if (value !== formData.password) {
+          error = 'Las contraseñas no coinciden';
+        }
+        break;
+
+      case 'acceptTerms':
+        if (!value) {
+          error = 'Debes aceptar los términos y condiciones';
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    return error;
+  };
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    let fieldValue = type === 'checkbox' ? checked : value;
+
+    // Formatear teléfono automáticamente
+    if (name === 'phone') {
+      const prefix = PHONE_PREFIXES[formData.country];
+      if (!fieldValue.startsWith(prefix)) {
+        fieldValue = prefix + ' ' + fieldValue.replace(/[^\d]/g, '');
       }
     }
-    
-    setFormData({ ...formData, phone: formatted.trim() });
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: fieldValue,
+    }));
+
+    // Limpiar error del campo
+    if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: '',
+      }));
+    }
+
+    // Re-validar confirmPassword si se cambia password
+    if (name === 'password' && formData.confirmPassword) {
+      const confirmError = fieldValue !== formData.confirmPassword
+        ? 'Las contraseñas no coinciden'
+        : '';
+      setErrors((prev) => ({
+        ...prev,
+        confirmPassword: confirmError,
+      }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    const error = validateField(name, value);
+
+    if (error) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: error,
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Validar todos los campos
+    Object.keys(formData).forEach((key) => {
+      if (key !== 'referredBy') { // referredBy es opcional
+        const error = validateField(key, formData[key]);
+        if (error) newErrors[key] = error;
+      }
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
 
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+    // Validar formulario
+    if (!validateForm()) {
+      toast.error('Por favor corrige los errores en el formulario');
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-
-    if (!formData.agreeTerms) {
-      setError('You must agree to the terms and conditions');
-      return;
-    }
-
-    setLoading(true);
+    setIsLoading(true);
 
     try {
-      console.log('Attempting registration for:', formData.email);
-      
-      const result = await register({
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone.replace(/\s/g, ''), // Remove spaces
-        country: formData.country,
-        password: formData.password,
-        referredBy: formData.referredBy || null
-      });
+      console.log('[Register] Attempting registration...');
+      const result = await register(formData);
 
       if (result.success) {
-        console.log('Registration successful, redirecting to dashboard');
-        navigate('/dashboard');
+        console.log('[Register] Registration successful, navigating to dashboard');
+        const welcomeBonus = LIMITS[formData.country].WELCOME_BONUS;
+        const bonusText = formatCurrency(welcomeBonus, formData.country);
+        
+        toast.success(`¡Cuenta creada exitosamente!`, {
+          duration: 2000,
+        });
+        toast.success(
+          `🎁 Bono de bienvenida: ${bonusText}`,
+          { duration: 4000 }
+        );
+        
+        // Esperar un momento para que los toasts se muestren
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Forzar navegación
+        console.log('[Register] Navigating to dashboard');
+        navigate('/dashboard', { replace: true });
+        
+        // Forzar recarga si es necesario
+        window.location.href = '/dashboard';
       } else {
-        console.error('Registration failed:', result.error);
-        setError(result.error || 'Registration failed. Please try again.');
+        console.log('[Register] Registration failed:', result.error);
+        toast.error(result.error || 'Error al crear la cuenta');
       }
-    } catch (err) {
-      console.error('Registration error:', err);
-      setError('An error occurred. Please try again.');
+    } catch (error) {
+      console.error('[Register] Unexpected error:', error);
+      toast.error('Error al crear la cuenta. Inténtalo nuevamente.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full">
-        {/* Header */}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 px-4 py-12">
+      <div className="w-full max-w-2xl">
+        {/* Logo y Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-xl mb-4">
-            <span className="text-white font-bold text-2xl">M</span>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-2xl mb-4 shadow-lg">
+            <span className="text-white font-bold text-3xl">M</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
-          <p className="text-gray-600">Start your investment journey with MONETA-ICT</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Crear Cuenta en MONETA-ICT
+          </h1>
+          <p className="text-gray-600">
+            Completa el formulario para empezar a invertir
+          </p>
         </div>
 
-        {/* Registration Form */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-800 text-sm">{error}</p>
-            </div>
-          )}
-
+        {/* Formulario */}
+        <div className="card">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Full Name */}
+            {/* Nombre Completo */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="John Doe"
-                required
-              />
-            </div>
-
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="you@example.com"
-                required
-              />
-            </div>
-
-            {/* Country */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Country
-              </label>
-              <select
-                value={formData.country}
-                onChange={(e) => setFormData({ ...formData, country: e.target.value, phone: '' })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="CO">🇨🇴 Colombia</option>
-                <option value="PE">🇵🇪 Peru</option>
-              </select>
-            </div>
-
-            {/* Phone */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number
-              </label>
-              <div className="flex">
-                <span className="inline-flex items-center px-4 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg text-gray-700">
-                  {formData.country === 'CO' ? '+57' : '+51'}
-                </span>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => handlePhoneChange(e.target.value)}
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder={formData.country === 'CO' ? '300 123 4567' : '987 654 321'}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                Nombre Completo *
               </label>
               <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Minimum 6 characters"
-                  required
-                  minLength={6}
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  className={`input pl-10 ${
+                    errors.name ? 'border-danger-500 focus:border-danger-500 focus:ring-danger-500' : ''
+                  }`}
+                  placeholder="Juan Pérez García"
+                  disabled={isLoading}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                >
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
-                </button>
+              </div>
+              {errors.name && (
+                <p className="mt-1 text-sm text-danger-600">{errors.name}</p>
+              )}
+            </div>
+
+            {/* Email y País (Grid 2 columnas en desktop) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Email */}
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                  Correo Electrónico *
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    className={`input pl-10 ${
+                      errors.email ? 'border-danger-500 focus:border-danger-500 focus:ring-danger-500' : ''
+                    }`}
+                    placeholder="tu@correo.com"
+                    disabled={isLoading}
+                  />
+                </div>
+                {errors.email && (
+                  <p className="mt-1 text-sm text-danger-600">{errors.email}</p>
+                )}
+              </div>
+
+              {/* País */}
+              <div>
+                <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-2">
+                  País *
+                </label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <select
+                    id="country"
+                    name="country"
+                    value={formData.country}
+                    onChange={handleChange}
+                    className="input pl-10 appearance-none cursor-pointer"
+                    disabled={isLoading}
+                  >
+                    <option value={COUNTRIES.COLOMBIA}>
+                      {COUNTRY_NAMES.CO} 🇨🇴
+                    </option>
+                    <option value={COUNTRIES.PERU}>
+                      {COUNTRY_NAMES.PE} 🇵🇪
+                    </option>
+                  </select>
+                </div>
               </div>
             </div>
 
-            {/* Confirm Password */}
+            {/* Teléfono */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm Password
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                Teléfono *
               </label>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Re-enter password"
-                required
-              />
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  className={`input pl-10 ${
+                    errors.phone ? 'border-danger-500 focus:border-danger-500 focus:ring-danger-500' : ''
+                  }`}
+                  placeholder={
+                    formData.country === 'CO' 
+                      ? '+57 3001234567' 
+                      : '+51 912345678'
+                  }
+                  disabled={isLoading}
+                />
+              </div>
+              {errors.phone && (
+                <p className="mt-1 text-sm text-danger-600">{errors.phone}</p>
+              )}
             </div>
 
-            {/* Referral Code (Optional) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Referral Code (Optional)
-              </label>
-              <input
-                type="text"
-                value={formData.referredBy}
-                onChange={(e) => setFormData({ ...formData, referredBy: e.target.value.toUpperCase() })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter referral code"
-                maxLength={6}
-              />
+            {/* Contraseña y Confirmar (Grid 2 columnas en desktop) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Contraseña */}
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                  Contraseña *
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    className={`input pl-10 pr-10 ${
+                      errors.password ? 'border-danger-500 focus:border-danger-500 focus:ring-danger-500' : ''
+                    }`}
+                    placeholder="••••••••"
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    disabled={isLoading}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="mt-1 text-sm text-danger-600">{errors.password}</p>
+                )}
+              </div>
+
+              {/* Confirmar Contraseña */}
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                  Confirmar Contraseña *
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    className={`input pl-10 pr-10 ${
+                      errors.confirmPassword ? 'border-danger-500 focus:border-danger-500 focus:ring-danger-500' : ''
+                    }`}
+                    placeholder="••••••••"
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    disabled={isLoading}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+                {errors.confirmPassword && (
+                  <p className="mt-1 text-sm text-danger-600">{errors.confirmPassword}</p>
+                )}
+              </div>
             </div>
 
-            {/* Terms Agreement */}
-            <div className="flex items-start">
-              <input
-                type="checkbox"
-                checked={formData.agreeTerms}
-                onChange={(e) => setFormData({ ...formData, agreeTerms: e.target.checked })}
-                className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                required
-              />
-              <label className="ml-2 text-sm text-gray-600">
-                I agree to the{' '}
-                <a href="#" className="text-blue-600 hover:text-blue-700">
-                  Terms and Conditions
-                </a>{' '}
-                and{' '}
-                <a href="#" className="text-blue-600 hover:text-blue-700">
-                  Privacy Policy
-                </a>
+            {/* Código de Referido (Opcional) */}
+            <div>
+              <label htmlFor="referredBy" className="block text-sm font-medium text-gray-700 mb-2">
+                Código de Referido (Opcional)
               </label>
+              <div className="relative">
+                <Gift className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  id="referredBy"
+                  name="referredBy"
+                  value={formData.referredBy}
+                  onChange={handleChange}
+                  className="input pl-10 uppercase"
+                  placeholder="ABC123"
+                  maxLength={6}
+                  disabled={isLoading}
+                />
+              </div>
+              {referralCodeFromUrl && (
+                <p className="mt-1 text-sm text-success-600">
+                  ✓ Código de referido aplicado
+                </p>
+              )}
+            </div>
+
+            {/* Términos y Condiciones */}
+            <div>
+              <div className="flex items-start">
+                <input
+                  type="checkbox"
+                  id="acceptTerms"
+                  name="acceptTerms"
+                  checked={formData.acceptTerms}
+                  onChange={handleChange}
+                  className={`w-4 h-4 mt-1 text-primary-600 border-gray-300 rounded focus:ring-primary-500 ${
+                    errors.acceptTerms ? 'border-danger-500' : ''
+                  }`}
+                  disabled={isLoading}
+                />
+                <label htmlFor="acceptTerms" className="ml-2 text-sm text-gray-700">
+                  Acepto los{' '}
+                  <a href="#" className="text-primary-600 hover:text-primary-700 font-medium">
+                    Términos y Condiciones
+                  </a>{' '}
+                  y la{' '}
+                  <a href="#" className="text-primary-600 hover:text-primary-700 font-medium">
+                    Política de Privacidad
+                  </a>
+                </label>
+              </div>
+              {errors.acceptTerms && (
+                <p className="mt-1 text-sm text-danger-600">{errors.acceptTerms}</p>
+              )}
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+              disabled={isLoading || !formData.acceptTerms}
+              className="btn btn-primary w-full text-base py-3"
             >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Creating account...
-                </span>
+              {isLoading ? (
+                <LoadingSpinner size="sm" className="mx-auto" />
               ) : (
-                'Create Account'
+                <>
+                  <UserPlus className="w-5 h-5 mr-2" />
+                  Crear Cuenta
+                </>
               )}
             </button>
           </form>
 
-          {/* Sign In Link */}
-          <div className="mt-6 text-center">
-            <p className="text-gray-600">
-              Already have an account?{' '}
-              <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">
-                Sign in
-              </Link>
-            </p>
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">
+                ¿Ya tienes una cuenta?
+              </span>
+            </div>
+          </div>
+
+          {/* Login Link */}
+          <Link
+            to="/login"
+            className="btn btn-secondary w-full text-base py-3"
+          >
+            Iniciar Sesión
+          </Link>
+        </div>
+
+        {/* Beneficios */}
+        <div className="mt-6 card bg-gradient-to-r from-primary-50 to-success-50">
+          <div className="flex items-start space-x-3">
+            <Gift className="w-6 h-6 text-primary-600 flex-shrink-0 mt-1" />
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-1">
+                Bono de Bienvenida
+              </h3>
+              <p className="text-sm text-gray-600">
+                Al registrarte recibirás un bono de{' '}
+                <span className="font-bold text-primary-700">
+                  {formatCurrency(LIMITS[formData.country].WELCOME_BONUS, formData.country)}
+                </span>{' '}
+                después de tu primer depósito aprobado.
+              </p>
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default Register;
