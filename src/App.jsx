@@ -1,49 +1,143 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Toaster } from 'react-hot-toast'
-import { AuthProvider } from './context/AuthContext'
-import { AppProvider } from './context/AppContext'
-import Layout from './components/layout/Layout'
-import ProtectedRoute from './components/layout/ProtectedRoute'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import Dashboard from './pages/Dashboard'
-import Plans from './pages/Plans'
-import Deposit from './pages/Deposit'
-import Withdraw from './pages/Withdraw'
-import History from './pages/History'
-import Referrals from './pages/Referrals'
-import Admin from './pages/Admin'
-import Profile from './pages/Profile'
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { AuthProvider } from './context/AuthContext';
+import { AppProvider } from './context/AppContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Layout from './components/layout/Layout';
+
+// Importar páginas
+import {
+  Login,
+  Register,
+  Dashboard,
+  Plans,
+  Deposit,
+  Withdraw,
+  History,
+  Referrals,
+  Admin,
+} from './pages';
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <AppProvider>
-
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#fff',
+                color: '#374151',
+              },
+              success: {
+                iconTheme: {
+                  primary: '#22c55e',
+                  secondary: '#fff',
+                },
+              },
+              error: {
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
+          
           <Routes>
+            {/* Rutas públicas */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
-            <Route element={<Layout />}>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
-              <Route path="/deposit" element={<ProtectedRoute><Deposit /></ProtectedRoute>} />
-              <Route path="/withdraw" element={<ProtectedRoute><Withdraw /></ProtectedRoute>} />
-              <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
-              <Route path="/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
-            </Route>
+            {/* Rutas protegidas */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Dashboard />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/plans"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Plans />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/deposit"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Deposit />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/withdraw"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Withdraw />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/history"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <History />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/referrals"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Referrals />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <Layout>
+                    <Admin />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Redirección por defecto */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
-
-          <Toaster position="top-right" />
-
         </AppProvider>
       </AuthProvider>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;
