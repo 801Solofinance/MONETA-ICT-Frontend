@@ -1,47 +1,56 @@
-import { Clock, CheckCircle2, XCircle, Zap } from 'lucide-react'
-import { cn } from '../../utils/cn'
+import React from 'react';
+import { cn } from '../../utils/cn';
+import { 
+  Clock, 
+  CheckCircle2, 
+  XCircle, 
+  Zap,
+  CheckCheck
+} from 'lucide-react';
 
-export default function StatusBadge({ status }) {
-  const config = {
+const StatusBadge = ({ status }) => {
+  const statusConfig = {
     pending: {
-      icon: Clock,
       label: 'Pendiente',
-      className: 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      className: 'badge-warning',
+      icon: Clock,
     },
     approved: {
-      icon: CheckCircle2,
       label: 'Aprobado',
-      className: 'bg-green-100 text-green-800 border-green-200'
+      className: 'badge-success',
+      icon: CheckCircle2,
     },
     rejected: {
-      icon: XCircle,
       label: 'Rechazado',
-      className: 'bg-red-100 text-red-800 border-red-200'
+      className: 'badge-danger',
+      icon: XCircle,
     },
     active: {
-      icon: Zap,
       label: 'Activa',
-      className: 'bg-blue-100 text-blue-800 border-blue-200'
+      className: 'badge-primary',
+      icon: Zap,
     },
     completed: {
-      icon: CheckCircle2,
       label: 'Completada',
-      className: 'bg-gray-100 text-gray-800 border-gray-200'
+      className: 'badge-success',
+      icon: CheckCheck,
     },
     cancelled: {
-      icon: XCircle,
       label: 'Cancelada',
-      className: 'bg-gray-100 text-gray-800 border-gray-200'
-    }
-  }
+      className: 'badge-danger',
+      icon: XCircle,
+    },
+  };
 
-  const statusConfig = config[status] || config.pending
-  const Icon = statusConfig.icon
+  const config = statusConfig[status] || statusConfig.pending;
+  const Icon = config.icon;
 
   return (
-    <span className={cn('inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border', statusConfig.className)}>
+    <span className={cn('badge', config.className)}>
       <Icon className="w-3 h-3 mr-1" />
-      {statusConfig.label}
+      {config.label}
     </span>
-  )
-}
+  );
+};
+
+export default StatusBadge;
