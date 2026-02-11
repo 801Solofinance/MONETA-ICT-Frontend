@@ -44,8 +44,8 @@ const Login = () => {
       case 'password':
         if (!value) {
           error = 'La contraseña es obligatoria';
-        } else if (value.length < 8) {
-          error = 'La contraseña debe tener al menos 8 caracteres';
+        } else if (value.length < 6) {
+          error = 'La contraseña debe tener al menos 6 caracteres';
         }
         break;
       default:
