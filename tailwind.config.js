@@ -60,3 +60,13 @@ export default {
   },
   plugins: [],
 }
+colors: {
+  dark: "#0b0b0b",
+  gold: "#d4af37",
+  goldLight: "#f5d76e",
+  redDark: "#8b0000",
+  red: "#ff3b3b",
+  blue: "#1e40af",
+  green: "#16a34a",
+  yellow: "#facc15",
+}
