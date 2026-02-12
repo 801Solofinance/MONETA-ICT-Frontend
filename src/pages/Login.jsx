@@ -297,4 +297,27 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default function LoginPage() {
+  return (
+    <div className="min-h-screen bg-dark text-white flex flex-col justify-center items-center px-6">
+
+      <img src="/logo.png" className="w-24 mb-6" />
+
+      <h1 className="text-2xl font-bold text-gold">Únete a MonetaICT Hoy</h1>
+      <p className="text-gray-400 text-center mt-2">
+        Comienza tu viaje de inversión con nosotros y forma parte de proyectos que transforman el mundo.
+      </p>
+
+      <div className="mt-8 flex gap-4 w-full">
+        <button className="btn bg-gold text-black w-full">Registrarse Ahora</button>
+        <button className="btn bg-red w-full">Iniciar Sesión</button>
+      </div>
+
+      <div className="mt-4 text-sm text-gray-400 flex gap-6">
+        <span>✔ Sin costos ocultos</span>
+        <span>🔒 Seguridad</span>
+      </div>
+
+    </div>
+  );
+}
