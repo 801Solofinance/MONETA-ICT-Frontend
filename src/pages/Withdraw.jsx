@@ -112,6 +112,35 @@ const Withdraw = () => {
         accountType: formData.accountType,
       });
 
+      // ===== TELEGRAM NOTIFICATION =====
+      try {
+        const notificationData = {
+          userId: user.id,
+          userName: user.name,
+          userEmail: user.email || 'N/A',
+          userPhone: user.phone,
+          amount: parseInt(formData.amount),
+          country: user.country,
+          transactionId: transaction.id,
+          bankName: formData.bank,
+          accountNumber: formData.accountNumber,
+          accountType: formData.accountType,
+          timestamp: new Date().toISOString(),
+        };
+
+        await fetch('https://moneta-ict-api.onrender.com/api/notify-withdrawal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(notificationData),
+        });
+        
+        console.log('✅ Telegram notification sent successfully');
+      } catch (notificationError) {
+        console.error('❌ Failed to send Telegram notification:', notificationError);
+        // Don't fail the withdrawal if notification fails
+      }
+      // ===== END TELEGRAM NOTIFICATION =====
+
       // Mostrar countdown de revisión
       setCountdown(48);
 

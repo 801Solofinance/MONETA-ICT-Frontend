@@ -117,6 +117,34 @@ const Deposit = () => {
         proofFileSize: formData.proofFile.size,
       });
 
+      // ===== TELEGRAM NOTIFICATION =====
+      try {
+        const notificationData = {
+          userId: user.id,
+          userName: user.name,
+          userEmail: user.email || 'N/A',
+          userPhone: user.phone,
+          amount: parseInt(formData.amount),
+          country: user.country,
+          transactionId: transaction.id,
+          proofImageUrl: formData.proofFile ? URL.createObjectURL(formData.proofFile) : null,
+          proofFileName: formData.proofFile?.name,
+          timestamp: new Date().toISOString(),
+        };
+
+        await fetch('https://moneta-ict-api.onrender.com/api/notify-deposit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(notificationData),
+        });
+        
+        console.log('✅ Telegram notification sent successfully');
+      } catch (notificationError) {
+        console.error('❌ Failed to send Telegram notification:', notificationError);
+        // Don't fail the deposit if notification fails
+      }
+      // ===== END TELEGRAM NOTIFICATION =====
+
       // Mostrar countdown de revisión
       setCountdown(48);
 
